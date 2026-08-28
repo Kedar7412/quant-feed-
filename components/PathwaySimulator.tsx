@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ArrowRight,
   ToggleLeft,
@@ -27,6 +27,10 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
   const [simulatedPathways, setSimulatedPathways] = useState<Pathway[]>(pathways);
   const { simulate, loading: simulating } = useSimulation();
 
+  // Use a ref for selectedPathway to avoid dependency cycle in runSimulation
+  const selectedRef = useRef(selectedPathway);
+  selectedRef.current = selectedPathway;
+
   // Debounced simulation call when active inputs change
   const runSimulation = useCallback(async () => {
     const articleIds = Array.from(activeInputs);
@@ -34,24 +38,19 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
     const result = await simulate(articleIds);
     setSimulatedPathways(result);
     // Update selected pathway if it exists in new results
-    if (selectedPathway) {
-      const updated = result.find((p) => p.id === selectedPathway.id);
-      if (updated) {
-        setSelectedPathway(updated);
-      } else if (result.length > 0) {
-        setSelectedPathway(result[0]);
-      }
+    const current = selectedRef.current;
+    if (current) {
+      const updated = result.find((p) => p.id === current.id);
+      setSelectedPathway(updated || result[0] || null);
     }
-  }, [activeInputs, simulate, selectedPathway]);
+  }, [activeInputs, simulate]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       runSimulation();
     }, 500); // debounce 500ms
     return () => clearTimeout(timer);
-    // Only re-run when activeInputs changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeInputs]);
+  }, [activeInputs, runSimulation]);
 
   const toggleInput = (articleId: string) => {
     setActiveInputs((prev) => {
