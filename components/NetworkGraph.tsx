@@ -65,11 +65,21 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     new Set(["domestic", "international", "economic", "political"])
   );
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  // Tracks whether the selected node's image failed to load, so we can fall
+  // back to the category gradient placeholder.
+  const [imageError, setImageError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const pulsePhaseRef = useRef(0);
+  // Cached scene object references, collected as nodes are built, so the
+  // per-frame loop never has to run a full scene.traverse().
+  const pulseRingsRef = useRef<THREE.Mesh[]>([]);
+  const textLabelsRef = useRef<THREE.Sprite[]>([]);
+  // Single reusable Vector3, hoisted out of the per-frame loop to avoid a fresh
+  // allocation per label per frame (GC-pressure risk as the graph grows).
+  const reusableWorldPos = useRef(new THREE.Vector3());
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -96,28 +106,32 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
 
       const graph = graphRef.current;
       if (graph) {
-        const scene = graph.scene?.();
         const camera = graph.camera?.();
-        if (scene && camera) {
+        if (camera) {
           // Pulse factor oscillates between ~0.85 and ~1.15
           const pulseScale = 1 + Math.sin(phase) * 0.15;
           const pulseOpacity = 0.35 + (Math.sin(phase) + 1) * 0.2; // 0.35 - 0.75
 
-          scene.traverse((obj: any) => {
-            if (obj.name === "pulseRing") {
-              obj.scale.set(pulseScale, pulseScale, pulseScale);
-              if (obj.material) {
-                obj.material.opacity = pulseOpacity;
-              }
-            } else if (obj.name === "textLabel") {
-              // Distance-based label visibility (LOD): show only when the
-              // camera is close enough to the node.
-              const worldPos = new THREE.Vector3();
-              obj.getWorldPosition(worldPos);
-              const dist = camera.position.distanceTo(worldPos);
-              obj.visible = dist < LABEL_VISIBLE_DISTANCE;
-            }
-          });
+          // Iterate only the cached ring/label references instead of walking
+          // the entire scene graph every frame.
+          const rings = pulseRingsRef.current;
+          for (let i = 0; i < rings.length; i++) {
+            const ring = rings[i];
+            ring.scale.set(pulseScale, pulseScale, pulseScale);
+            const mat = ring.material as THREE.Material & { opacity: number };
+            if (mat) mat.opacity = pulseOpacity;
+          }
+
+          const labels = textLabelsRef.current;
+          const worldPos = reusableWorldPos.current;
+          for (let i = 0; i < labels.length; i++) {
+            const label = labels[i];
+            // Distance-based label visibility (LOD): show only when the camera
+            // is close enough to the node. Reuse a single Vector3.
+            label.getWorldPosition(worldPos);
+            const dist = camera.position.distanceTo(worldPos);
+            label.visible = dist < LABEL_VISIBLE_DISTANCE;
+          }
         }
       }
 
@@ -283,6 +297,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
 
   const handleNodeClick = useCallback((node: any) => {
     setSelectedNode(node as EconomicNode);
+    setImageError(false);
     // Smooth camera transition to selected node
     if (graphRef.current) {
       const distance = 80;
@@ -386,6 +401,19 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     [selectedNode, connectedEdges]
   );
 
+  // Reset the cached ring/label references whenever the node objects are about
+  // to be rebuilt (selection change or graph data change). This runs during
+  // render, before ForceGraph3D invokes nodeThreeObject for each node, so the
+  // caches only ever hold the objects from the current build.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useMemo(() => {
+    pulseRingsRef.current = [];
+    textLabelsRef.current = [];
+    // Deps are intentional rebuild triggers: whenever the selection or graph
+    // data changes, ForceGraph3D rebuilds every node object, so we must drop
+    // the stale cached references before the new ones are collected.
+  }, [selectedNode, connectedNodeIds, filteredData]);
+
   // Custom 3D node objects with glowing spheres, freshness-based glow, and labels
   const nodeThreeObject = useCallback(
     (node: any) => {
@@ -443,6 +471,9 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
         });
         const ring = new THREE.Mesh(ringGeometry, ringMaterial);
         ring.name = "pulseRing";
+        // Cache the ring so the animation loop can pulse it without traversing
+        // the whole scene each frame.
+        pulseRingsRef.current.push(ring);
         group.add(ring);
       }
 
@@ -481,6 +512,9 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
           // Start hidden; the per-frame loop reveals labels only when the
           // camera is within LABEL_VISIBLE_DISTANCE of the node (LOD).
           sprite.visible = false;
+          // Cache the label so the animation loop can toggle its visibility
+          // without traversing the whole scene each frame.
+          textLabelsRef.current.push(sprite);
           group.add(sprite);
         }
       }
@@ -590,21 +624,36 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
               </button>
 
               <div className="flex gap-4">
-                {/* Left: Category image placeholder */}
+                {/* Left: Related article image (falls back to category gradient) */}
                 <div
-                  className={`shrink-0 w-[100px] h-[70px] rounded-lg flex items-center justify-center bg-gradient-to-br ${categoryGradients[selectedNode.category] || "from-indigo-500/20 to-indigo-900/40"}`}
+                  className="shrink-0 w-[120px] h-[80px] rounded-lg overflow-hidden"
                   style={{
                     border: `1px solid ${categoryColors[selectedNode.category] || "#6366f1"}30`,
                   }}
                 >
-                  <span
-                    className="text-xs font-semibold capitalize"
-                    style={{
-                      color: categoryColors[selectedNode.category] || "#6366f1",
-                    }}
-                  >
-                    {selectedNode.category}
-                  </span>
+                  {selectedArticle.imageUrl && !imageError ? (
+                    <img
+                      src={selectedArticle.imageUrl}
+                      alt={selectedArticle.title || selectedArticle.label || "Related article"}
+                      loading="lazy"
+                      onError={() => setImageError(true)}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${categoryGradients[selectedNode.category] || "from-indigo-500/20 to-indigo-900/40"}`}
+                    >
+                      <span
+                        className="text-xs font-semibold capitalize"
+                        style={{
+                          color:
+                            categoryColors[selectedNode.category] || "#6366f1",
+                        }}
+                      >
+                        {selectedNode.category}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Center: Content */}

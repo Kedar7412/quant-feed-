@@ -317,7 +317,80 @@ export const mockArticles: NewsArticle[] = [
     tags: ["climate change", "agriculture", "extreme weather", "food security"],
     isLiveData: false,
   },
+  // ---------------------------------------------------------------------------
+  // Recent demonstration articles (SAMPLE data, isLiveData: false).
+  // These share keywords/topics with the historical articles above so the topic
+  // correlation engine clusters them together, but they carry recent timestamps
+  // (last 24-48h relative to Date.now()) so `computeChangeVelocity` produces a
+  // non-zero signal for the Trending Threads panel. They exist purely to
+  // demonstrate the velocity feature on sample data and are still clearly marked
+  // as sample (isLiveData: false). The bulk of mock articles keep their fixed
+  // historical Dec-2024 dates - only these few use recent dates on purpose.
+  // ---------------------------------------------------------------------------
+  {
+    id: "art-23",
+    title: "RBI Monetary Policy Committee to Review Repo Rate Amid Inflation Watch",
+    summary:
+      "Ahead of its next meeting, the Reserve Bank of India flagged persistent food inflation as the primary risk to any near-term repo rate move, with economists split on whether monetary policy will pivot to easing in the coming quarter.",
+    source: "Economic Times",
+    url: "https://economictimes.com/rbi-mpc-review",
+    publishedAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
+    category: "economic",
+    subcategory: "Indian National",
+    economicImpactScore: 9,
+    tags: ["RBI", "monetary policy", "repo rate", "inflation"],
+    isLiveData: false,
+  },
+  {
+    id: "art-24",
+    title: "Sensex Extends Rally as FII Inflows Accelerate on Rate Cut Bets",
+    summary:
+      "Indian equity benchmarks climbed further as foreign institutional investors added to positions, with the Sensex building on recent highs. Traders cited expectations of global rate cuts and strong FII allocation to Indian stock markets.",
+    source: "Mint",
+    url: "https://livemint.com/sensex-fii-rally",
+    publishedAt: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
+    category: "economic",
+    subcategory: "Indian National",
+    economicImpactScore: 8,
+    tags: ["stock market", "FII", "Sensex", "investment"],
+    isLiveData: false,
+  },
+  {
+    id: "art-25",
+    title: "Semiconductor Push: New Fab Incentives Boost Electronics Manufacturing",
+    summary:
+      "The government unveiled fresh incentives to deepen India's semiconductor and electronics manufacturing supply chain, building on the Tamil Nadu fab clearance and PLI-driven output as global chip makers weigh India capacity.",
+    source: "Business Standard",
+    url: "https://business-standard.com/semiconductor-incentives",
+    publishedAt: new Date(Date.now() - 30 * 3600 * 1000).toISOString(),
+    category: "political",
+    subcategory: "Indian National",
+    economicImpactScore: 8,
+    tags: ["semiconductor", "manufacturing", "electronics", "supply chain"],
+    isLiveData: false,
+  },
+  {
+    id: "art-26",
+    title: "Global Markets Firm as US Fed Rate Cut Expectations Strengthen",
+    summary:
+      "Global markets edged higher as investors priced in a faster pace of US Federal Reserve rate cuts, lifting emerging market currencies including the rupee and reinforcing the global easing cycle narrative.",
+    source: "Reuters",
+    url: "https://reuters.com/fed-rate-cut-expectations",
+    publishedAt: new Date(Date.now() - 40 * 3600 * 1000).toISOString(),
+    category: "international",
+    subcategory: "International",
+    economicImpactScore: 8,
+    tags: ["US Fed", "rate cuts", "global markets", "rupee"],
+    isLiveData: false,
+  },
 ];
+
+const categoryPlaceholderImages: Record<string, string> = {
+  domestic: "https://placehold.co/400x200/1a2e1a/22c55e?text=Domestic",
+  international: "https://placehold.co/400x200/1a1a2e/3b82f6?text=Global",
+  economic: "https://placehold.co/400x200/2e2a1a/f59e0b?text=Economic",
+  political: "https://placehold.co/400x200/2e1a1a/ef4444?text=Political",
+};
 
 export const mockNodes: EconomicNode[] = mockArticles.map((article) => ({
   id: article.id,
@@ -339,6 +412,9 @@ export const mockNodes: EconomicNode[] = mockArticles.map((article) => ({
   economicImpactScore: article.economicImpactScore,
   tags: article.tags,
   url: article.url,
+  imageUrl:
+    categoryPlaceholderImages[article.category] ||
+    "https://placehold.co/400x200/1a1a2e/6366f1?text=News",
 }));
 
 export const mockEdges: EconomicEdge[] = [
@@ -366,6 +442,16 @@ export const mockEdges: EconomicEdge[] = [
   { source: "art-22", target: "art-13", strength: 0.7, relationship: "Climate impacts on agriculture drive food price inflation" },
   { source: "art-7", target: "art-12", strength: 0.5, relationship: "EV adoption linked to broader green energy transition" },
   { source: "art-13", target: "art-1", strength: 0.8, relationship: "Food inflation influences RBI rate decisions" },
+  // Edges connecting the recent demonstration articles (art-23..art-26) to
+  // their historical counterparts so they appear in the graph and cluster.
+  { source: "art-23", target: "art-1", strength: 0.9, relationship: "Latest RBI policy review continues the repo rate narrative" },
+  { source: "art-23", target: "art-13", strength: 0.75, relationship: "Food inflation remains the key input to the RBI rate call" },
+  { source: "art-24", target: "art-2", strength: 0.9, relationship: "Ongoing Sensex rally extends the earlier FII-driven surge" },
+  { source: "art-24", target: "art-3", strength: 0.7, relationship: "Rate cut expectations sustain FII allocation to Indian equities" },
+  { source: "art-25", target: "art-16", strength: 0.85, relationship: "New fab incentives build on the Tamil Nadu semiconductor clearance" },
+  { source: "art-25", target: "art-21", strength: 0.8, relationship: "Semiconductor push reinforces electronics manufacturing scale-up" },
+  { source: "art-26", target: "art-3", strength: 0.85, relationship: "Fresh read on the same US Fed rate cut trajectory" },
+  { source: "art-26", target: "art-11", strength: 0.7, relationship: "Fed easing expectations continue to support the rupee" },
 ];
 
 export const mockGraphData: GraphData = {
