@@ -1,12 +1,13 @@
 "use client";
 
 import { NetworkGraph } from "@/components/NetworkGraph";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { useGraphData } from "@/lib/hooks/useApiData";
 import { Network, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function NetworkPage() {
-  const { data: graphData, loading } = useGraphData();
+  const { data: graphData, loading, dataSource } = useGraphData();
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
@@ -28,15 +29,26 @@ export default function NetworkPage() {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex items-center gap-2"
+          className="flex items-center gap-3"
         >
-          <div className="flex items-center gap-2 text-xs text-gray-400 glass px-3 py-1.5 rounded-lg">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
-            </span>
-            <span>Live</span>
+          <DataSourceBadge dataSource={dataSource} />
+
+          {/* Freshness Legend */}
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 glass px-3 py-1.5 rounded-lg">
+            <div className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
+              <span>Fresh</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_3px_rgba(245,158,11,0.4)]" />
+              <span>Recent</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-gray-500" />
+              <span>Older</span>
+            </div>
           </div>
+
           <div className="text-xs text-gray-500 glass px-3 py-1.5 rounded-lg">
             {loading
               ? "Loading..."

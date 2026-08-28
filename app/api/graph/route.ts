@@ -56,6 +56,13 @@ export async function GET(request: Request) {
     const articles = getArticles().length > 0 ? getArticles() : mockArticles;
     const articleMap = new Map(articles.map((a) => [a.id, a]));
 
+    const categoryPlaceholders: Record<string, string> = {
+      domestic: "https://placehold.co/120x80/1a2e1a/22c55e?text=Domestic",
+      international: "https://placehold.co/120x80/1a1a2e/3b82f6?text=Global",
+      economic: "https://placehold.co/120x80/2e2a1a/f59e0b?text=Economic",
+      political: "https://placehold.co/120x80/2e1a1a/ef4444?text=Political",
+    };
+
     graphData = {
       ...graphData,
       nodes: graphData.nodes.map((node) => {
@@ -66,6 +73,9 @@ export async function GET(request: Request) {
             ? computeFreshnessScore(article.publishedAt)
             : 0,
           url: article?.url,
+          imageUrl:
+            categoryPlaceholders[node.category] ||
+            "https://placehold.co/120x80/1a1a2e/6366f1?text=News",
         };
       }),
     };

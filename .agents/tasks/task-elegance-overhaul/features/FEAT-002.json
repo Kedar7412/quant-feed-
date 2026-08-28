@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "3D graph interaction overhaul - on zoom/hover show article headline, source, thumbnail image; on click show detail panel with full summary and 'Visit Article' link; highlight related articles (connected edges glow) when a node is selected; add text labels visible at appropriate zoom levels.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Step 1: Update `lib/types.ts` EconomicNode interface - Ensure it has `url?: string` and `imageUrl?: string` fields (may already be added in FEAT-001). Add `freshnessScore?: number` to EconomicNode as well.",
     "Step 2: Update `app/api/graph/route.ts` - When building nodes from articles, include the article's `url` field and `imageUrl` (use a category-based placeholder URL pattern like `https://placehold.co/120x80/1a1a2e/6366f1?text=Economic` if no image available). Pass article url through to node.",
