@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TrendingUp, CheckCircle, XCircle, Clock, Target, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { motion } from "framer-motion";
 import { usePredictions } from "@/lib/hooks/useApiData";
 
 const statusFilters = ["all", "active", "correct", "incorrect"] as const;
@@ -29,7 +30,11 @@ export default function PredictionsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-indigo-400" />
           Predictions
@@ -37,46 +42,53 @@ export default function PredictionsPage() {
         <p className="text-sm text-gray-400 mt-1">
           Historical and active predictions with confidence scores and accuracy tracking
         </p>
-      </div>
+      </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      >
+        <div className="glass rounded-xl p-4">
           <Target className="h-5 w-5 text-indigo-400 mb-2" />
           <p className="text-2xl font-bold text-white">{metrics.total}</p>
           <p className="text-xs text-gray-400">Total Predictions</p>
         </div>
-        <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+        <div className="glass rounded-xl p-4">
           <Clock className="h-5 w-5 text-blue-400 mb-2" />
           <p className="text-2xl font-bold text-white">{metrics.active}</p>
           <p className="text-xs text-gray-400">Active</p>
         </div>
-        <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+        <div className="glass rounded-xl p-4">
           <CheckCircle className="h-5 w-5 text-green-400 mb-2" />
           <p className="text-2xl font-bold text-white">{metrics.correct}</p>
           <p className="text-xs text-gray-400">Correct</p>
         </div>
-        <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4">
+        <div className="glass rounded-xl p-4">
           <TrendingUp className="h-5 w-5 text-green-400 mb-2" />
           <p className="text-2xl font-bold text-white">{metrics.accuracy}%</p>
           <p className="text-xs text-gray-400">Accuracy Rate</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Filter Tabs */}
       <div className="flex gap-2">
         {statusFilters.map((status) => (
-          <button
+          <motion.button
             key={status}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setFilter(status)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               filter === status
-                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                : "bg-gray-800/50 text-gray-400 border border-gray-700/50 hover:bg-gray-700/50"
+                ? "glass-strong text-indigo-300"
+                : "glass text-gray-400 hover:text-gray-200"
             }`}
           >
             {status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -90,15 +102,30 @@ export default function PredictionsPage() {
 
       {/* Predictions List */}
       {!loading && (
-        <div className="space-y-3">
+        <motion.div
+          className="space-y-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.08 },
+            },
+          }}
+        >
           {filteredPredictions.map((prediction) => {
             const config = statusConfig[prediction.status];
             const StatusIcon = config.icon;
 
             return (
-              <div
+              <motion.div
                 key={prediction.id}
-                className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-5"
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+                className="glass rounded-xl p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -118,26 +145,49 @@ export default function PredictionsPage() {
                     </h3>
                     <p className="text-xs text-gray-400">{prediction.description}</p>
                     {prediction.outcome && (
-                      <p className="text-xs text-gray-300 mt-2 p-2 bg-gray-800/50 rounded-lg border-l-2 border-indigo-500">
+                      <p className="text-xs text-gray-300 mt-2 p-2 glass rounded-lg border-l-2 border-indigo-500">
                         Outcome: {prediction.outcome}
                       </p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-lg font-bold text-white">
-                      {prediction.confidence}%
+                    {/* Animated progress ring */}
+                    <div className="relative w-14 h-14 mx-auto">
+                      <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                        <circle
+                          cx="28"
+                          cy="28"
+                          r="24"
+                          fill="none"
+                          stroke="rgba(255,255,255,0.05)"
+                          strokeWidth="4"
+                        />
+                        <circle
+                          cx="28"
+                          cy="28"
+                          r="24"
+                          fill="none"
+                          stroke="url(#gradient)"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeDasharray={`${prediction.confidence * 1.508} 150.8`}
+                          className="transition-all duration-1000"
+                        />
+                        <defs>
+                          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#6366f1" />
+                            <stop offset="100%" stopColor="#8b5cf6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-white">{prediction.confidence}%</span>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-gray-500">confidence</p>
-                    {/* Confidence bar */}
-                    <div className="mt-2 w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 rounded-full"
-                        style={{ width: `${prediction.confidence}%` }}
-                      />
-                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1">confidence</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-700/50 text-xs text-gray-500">
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/5 text-xs text-gray-500">
                   <span>
                     Created: {format(new Date(prediction.createdAt), "MMM dd, yyyy")}
                   </span>
@@ -145,10 +195,10 @@ export default function PredictionsPage() {
                     Target: {format(new Date(prediction.targetDate), "MMM dd, yyyy")}
                   </span>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -29,7 +29,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased min-h-screen bg-[#0a0a0f]">
-        <div className="flex h-screen overflow-hidden">
+        <div className="gradient-mesh" />
+        <div className="relative flex h-screen overflow-hidden">
           <Sidebar />
           <main className="flex-1 overflow-y-auto p-6 lg:p-8">
             {children}

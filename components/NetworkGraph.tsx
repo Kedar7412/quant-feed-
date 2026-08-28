@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { X, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { X, RotateCcw } from "lucide-react";
 import { EconomicNode, GraphData } from "@/lib/types";
+import * as THREE from "three";
 
-const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
+const ForceGraph3D = dynamic(() => import("react-force-graph-3d"), {
   ssr: false,
 });
 
@@ -35,6 +36,8 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
   );
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -48,6 +51,73 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     updateDimensions();
     window.addEventListener("resize", updateDimensions);
     return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
+
+  // Camera auto-rotation
+  useEffect(() => {
+    if (!graphRef.current) return;
+    const controls = graphRef.current.controls();
+    if (controls) {
+      controls.autoRotate = !isUserInteracting;
+      controls.autoRotateSpeed = 0.5;
+    }
+  }, [isUserInteracting]);
+
+  // Setup scene with lighting and star particles on mount
+  useEffect(() => {
+    if (!graphRef.current) return;
+    const scene = graphRef.current.scene();
+    if (!scene) return;
+
+    // Ambient light
+    const ambient = new THREE.AmbientLight(0x404060, 0.6);
+    scene.add(ambient);
+
+    // Point light (indigo tone)
+    const pointLight1 = new THREE.PointLight(0x6366f1, 1.5, 500);
+    pointLight1.position.set(100, 100, 100);
+    scene.add(pointLight1);
+
+    // Point light (purple tone)
+    const pointLight2 = new THREE.PointLight(0x8b5cf6, 1.0, 400);
+    pointLight2.position.set(-100, -50, -100);
+    scene.add(pointLight2);
+
+    // Star particles background
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 1000;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i++) {
+      positions[i] = (Math.random() - 0.5) * 1000;
+    }
+    starGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.5,
+      transparent: true,
+      opacity: 0.4,
+    });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    return () => {
+      scene.remove(ambient);
+      scene.remove(pointLight1);
+      scene.remove(pointLight2);
+      scene.remove(stars);
+      starGeometry.dispose();
+      starMaterial.dispose();
+    };
+  }, []);
+
+  const handleUserInteraction = useCallback(() => {
+    setIsUserInteracting(true);
+    if (interactionTimeout.current) {
+      clearTimeout(interactionTimeout.current);
+    }
+    interactionTimeout.current = setTimeout(() => {
+      setIsUserInteracting(false);
+    }, 5000);
   }, []);
 
   const filteredData = {
@@ -68,9 +138,19 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
 
   const handleNodeClick = useCallback((node: any) => {
     setSelectedNode(node as EconomicNode);
+    // Smooth camera transition to selected node
     if (graphRef.current) {
-      graphRef.current.centerAt(node.x, node.y, 500);
-      graphRef.current.zoom(3, 500);
+      const distance = 80;
+      const distRatio = 1 + distance / Math.hypot(node.x || 0, node.y || 0, node.z || 0);
+      graphRef.current.cameraPosition(
+        {
+          x: (node.x || 0) * distRatio,
+          y: (node.y || 0) * distRatio,
+          z: (node.z || 0) * distRatio,
+        },
+        { x: node.x || 0, y: node.y || 0, z: node.z || 0 },
+        1500
+      );
     }
   }, []);
 
@@ -86,23 +166,9 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     });
   };
 
-  const handleZoomIn = () => {
+  const handleResetView = () => {
     if (graphRef.current) {
-      const currentZoom = graphRef.current.zoom();
-      graphRef.current.zoom(currentZoom * 1.5, 300);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (graphRef.current) {
-      const currentZoom = graphRef.current.zoom();
-      graphRef.current.zoom(currentZoom / 1.5, 300);
-    }
-  };
-
-  const handleFitView = () => {
-    if (graphRef.current) {
-      graphRef.current.zoomToFit(400, 50);
+      graphRef.current.cameraPosition({ x: 0, y: 0, z: 300 }, { x: 0, y: 0, z: 0 }, 1000);
     }
   };
 
@@ -110,35 +176,61 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     ? graphData.nodes.find((n) => n.id === selectedNode.id)
     : null;
 
+  // Custom 3D node objects with glowing spheres
+  const nodeThreeObject = useCallback((node: any) => {
+    const category = node.category || "domestic";
+    const color = categoryColors[category] || "#6366f1";
+    const size = ((node.val || 5) * 1.2) + 3;
+
+    const group = new THREE.Group();
+
+    // Main sphere with emissive glow
+    const geometry = new THREE.SphereGeometry(size, 24, 24);
+    const material = new THREE.MeshPhongMaterial({
+      color: new THREE.Color(color),
+      emissive: new THREE.Color(color),
+      emissiveIntensity: 0.6,
+      transparent: true,
+      opacity: 0.85,
+      shininess: 100,
+    });
+    const sphere = new THREE.Mesh(geometry, material);
+    group.add(sphere);
+
+    // Outer glow sphere
+    const glowGeometry = new THREE.SphereGeometry(size * 1.4, 16, 16);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(color),
+      transparent: true,
+      opacity: 0.15,
+    });
+    const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+    group.add(glowSphere);
+
+    return group;
+  }, []);
+
   return (
-    <div className="relative h-full w-full" ref={containerRef}>
+    <div
+      className="relative h-full w-full"
+      ref={containerRef}
+      onMouseDown={handleUserInteraction}
+      onTouchStart={handleUserInteraction}
+      onWheel={handleUserInteraction}
+    >
       {/* Controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <button
-          onClick={handleZoomIn}
-          className="p-2 bg-gray-800/90 border border-gray-700 rounded-lg hover:bg-gray-700/90 transition-colors"
-          aria-label="Zoom in"
+          onClick={handleResetView}
+          className="p-2 glass rounded-lg hover:bg-white/10 transition-colors"
+          aria-label="Reset view"
         >
-          <ZoomIn className="h-4 w-4 text-gray-300" />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="p-2 bg-gray-800/90 border border-gray-700 rounded-lg hover:bg-gray-700/90 transition-colors"
-          aria-label="Zoom out"
-        >
-          <ZoomOut className="h-4 w-4 text-gray-300" />
-        </button>
-        <button
-          onClick={handleFitView}
-          className="p-2 bg-gray-800/90 border border-gray-700 rounded-lg hover:bg-gray-700/90 transition-colors"
-          aria-label="Fit to view"
-        >
-          <Maximize2 className="h-4 w-4 text-gray-300" />
+          <RotateCcw className="h-4 w-4 text-gray-300" />
         </button>
       </div>
 
       {/* Legend / Category Filter */}
-      <div className="absolute top-4 left-4 z-10 bg-gray-800/90 border border-gray-700 rounded-xl p-3">
+      <div className="absolute top-4 left-4 z-10 glass rounded-xl p-3">
         <p className="text-xs font-semibold text-gray-300 mb-2">Categories</p>
         <div className="space-y-1.5">
           {Object.entries(categoryLabels).map(([key, label]) => (
@@ -164,60 +256,31 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
         </div>
       </div>
 
-      {/* Graph */}
-      <ForceGraph2D
+      {/* 3D Graph */}
+      <ForceGraph3D
         ref={graphRef}
         graphData={filteredData}
         width={dimensions.width}
         height={dimensions.height}
-        backgroundColor="#0a0a0f"
-        nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-          const label = node.label || "";
-          const fontSize = 11 / globalScale;
-          const nodeSize = (node.val || 5) * 1.5;
-
-          // Node circle
-          ctx.beginPath();
-          ctx.arc(node.x!, node.y!, nodeSize, 0, 2 * Math.PI);
-          ctx.fillStyle = node.color || "#6366f1";
-          ctx.globalAlpha = 0.8;
-          ctx.fill();
-          ctx.globalAlpha = 1;
-
-          // Glow effect
-          ctx.beginPath();
-          ctx.arc(node.x!, node.y!, nodeSize + 2, 0, 2 * Math.PI);
-          ctx.strokeStyle = node.color || "#6366f1";
-          ctx.globalAlpha = 0.3;
-          ctx.lineWidth = 2 / globalScale;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-
-          // Label
-          if (globalScale > 1.5) {
-            ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-            ctx.fillStyle = "#e4e4e7";
-            ctx.fillText(label, node.x!, node.y! + nodeSize + 3);
-          }
-        }}
-        linkColor={() => "rgba(99, 102, 241, 0.2)"}
-        linkWidth={(link: any) => (link.strength || 0.5) * 3}
+        backgroundColor="rgba(10, 10, 15, 0)"
+        nodeThreeObject={nodeThreeObject}
+        nodeThreeObjectExtend={false}
+        linkColor={() => "rgba(99, 102, 241, 0.3)"}
+        linkWidth={(link: any) => (link.strength || 0.5) * 2}
+        linkDirectionalParticles={4}
+        linkDirectionalParticleWidth={1.5}
+        linkDirectionalParticleSpeed={0.005}
+        linkDirectionalParticleColor={() => "#818cf8"}
+        linkOpacity={0.4}
         onNodeClick={handleNodeClick}
         cooldownTicks={100}
-        nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
-          const nodeSize = (node.val || 5) * 1.5;
-          ctx.beginPath();
-          ctx.arc(node.x!, node.y!, nodeSize + 5, 0, 2 * Math.PI);
-          ctx.fillStyle = color;
-          ctx.fill();
-        }}
+        enableNodeDrag={true}
+        enableNavigationControls={true}
       />
 
       {/* Selected Node Details */}
       {selectedNode && selectedArticle && (
-        <div className="absolute bottom-4 left-4 right-4 z-10 bg-gray-900/95 border border-gray-700 rounded-xl p-4 max-w-lg">
+        <div className="absolute bottom-4 left-4 right-4 z-10 glass-strong rounded-xl p-4 max-w-lg">
           <button
             onClick={() => setSelectedNode(null)}
             className="absolute top-3 right-3 text-gray-400 hover:text-white"
