@@ -1,0 +1,7 @@
+{
+  "task_id": "task-live-data-and-redesign",
+  "task_description": "Fix QuantFeed's stale-data problem so it reliably shows current-dated news on Vercel serverless (replace /tmp-gated fetching with live-fetch-on-request + short in-process cache, add Google News RSS as a reliable primary source, prune unreliable feeds, filter out old articles, and make sample-fallback dates relative). Then redesign the entire UI to a premium dark charcoal analytics-dashboard aesthetic with a narrow circular-icon sidebar, a top bar (date + market indicator + search + avatar), lime/emerald green accents, a beige/tan featured card, and a consistent rounded-card system across all pages.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

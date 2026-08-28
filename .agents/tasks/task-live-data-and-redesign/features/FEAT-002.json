@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Fix the stale-data root cause so the app reliably serves CURRENT-dated news on Vercel serverless. The current pipeline persists to /tmp (ephemeral on Vercel) and gates fetching behind a 30-minute timestamp read from /tmp, so it frequently serves empty and falls back to mockArticles dated 2024-12. Rework the pipeline to fetch fresh news on every request (with a short in-process cache, NOT /tmp-gated), add Google News RSS as a reliable primary source, replace/prune unreliable feeds, filter out articles older than ~7 days when live data exists, and make sample-fallback dates relative so sample data never looks ancient. Do NOT add any database dependency. This feature is independent of the redesign (FEAT-003) and could be parallelized, but should land first so the redesign can display real data.",
+  "status": "pending",
+  "steps": [
+    "In lib/news/sources.ts: Add Google News RSS search feeds as reliable, always-current-dated sources. Use the endpoint pattern 'https://news.google.com/rss/search?q=<QUERY>%20when:1d&hl=en-IN&gl=IN&ceid=IN:en' (verified working from this environment, returns last-24h items). Add several queries covering the app's categories, e.g.: 'india economy' (economic/Indian National), 'RBI monetary policy' (economic/Indian National), 'sensex nifty stock market' (economic/Indian National), 'india inflation gdp' (economic/Indian National), 'global markets fed' (international/International with gl=US ceid=US:en), 'crude oil commodities' (international/International), 'india politics policy' (political/Indian National). URL-encode the query strings. Keep the reliable existing Indian feeds (Economic Times, LiveMint, Business Standard, Moneycontrol, The Hindu, Times of India, BBC Business, Al Jazeera). REMOVE or comment out the known-unreliable feeds (Reuters agency feed reutersagency.com, Bloomberg feeds.bloomberg.com, Financial Times ft.com) since they commonly 403/timeout. Keep the NewsSource interface shape unchanged.",
+    "In lib/news/fetcher.ts fetchFromRSS: Google News RSS titles come as 'Headline - Source Name' and the item.source field often holds the real outlet; parse the trailing ' - <source>' off the title to set a cleaner source/title where possible, and prefer the RSS <source> element when present. Keep the existing generateId/estimateEconomicImpact/extractTags logic.",
+    "In lib/news/fetcher.ts fetchLiveNews: after dedupe+sort, add a recency filter that DROPS articles with publishedAt older than 7 days, BUT only when at least a handful (>=5) of within-7-day articles remain; if the filter would leave too few, keep the newest items regardless so the feed is never empty. Ensure returned articles are sorted newest-first. Mark live-fetched articles with isLiveData=true.",
+    "Rework app/api/news/route.ts: REMOVE the /tmp-timestamp-gated 30-minute throttle (getLastFetchTimestamp/FETCH_INTERVAL_MS). Instead fetch live news on the request path using a short-lived in-process cache to avoid hammering feeds: implement a module-level cached fetch with a TTL of ~5-10 minutes (a simple module-scope variable holding {articles, fetchedAt}, OR Next.js unstable_cache with revalidate. Prefer a module-scope memo since 'export const dynamic = force-dynamic' is set). On each request: if cache is fresh (<TTL) reuse it; else call fetchLiveNews(); if it returns articles, use them and set dataSource='live' and update the memo; best-effort saveArticles() to /tmp for cross-request reuse but DO NOT depend on it. Only fall back to mockArticles (dataSource='sample') when BOTH live fetch AND any /tmp cache are empty. Preserve the existing scoring (scoreArticles), filters (search/category/date), sort, and pagination behavior and the response shape { articles, dataSource, pagination }.",
+    "Apply the same live-fetch-first, /tmp-optional approach to app/api/graph/route.ts and app/api/analysis/route.ts so the graph and dashboard summary reflect current data: when the /tmp store is empty (the common Vercel case), fetch live articles via the same cached fetcher and build graph/edges/correlations (graph) and a computed daily summary (analysis) from them rather than immediately serving sample data. Reuse existing helpers (extractRelationships, buildTopicCorrelations, generateDailySummary) where they work without external API keys; if generateDailySummary requires OPENAI_API_KEY, ensure a key-free deterministic fallback summary is produced from the live articles (headline, keyTakeaways, indicators, topClusters, sentiment) so dataSource can be 'live' rather than 'sample'.",
+    "In lib/mock-data.ts: change the hardcoded 2024-12 publishedAt timestamps to be RELATIVE to the current time (e.g., a helper 'hoursAgo(n)' that returns new Date(Date.now()-n*3600e3).toISOString()), so that if sample data is ever shown it appears recent and the DataSourceBadge still correctly labels it 'Sample Data'. Update mockDailySummary.date and any prediction createdAt/targetDate that assume 2024 so applyPredictionExpiry behaves sensibly relative to now. Do not change the article content/titles, only the dates.",
+    "Confirm DataSourceBadge still renders 'Sample Data' for dataSource='sample', 'Live' for 'live', 'Cached' for 'cached' (no code change expected unless the enum usage shifts)."
+  ],
+  "acceptance_criteria": [
+    "Starting the dev server ('npm run dev') and running 'curl -s http://localhost:3000/api/news' returns dataSource='live' and the newest article's publishedAt is within ~2 days of the current system date (2026-08-28 or later).",
+    "The /api/news response contains NO articles older than 7 days when live data is available.",
+    "'curl -s http://localhost:3000/api/graph' returns non-empty nodes with dataSource='live' (not 'sample') when feeds are reachable.",
+    "'curl -s http://localhost:3000/api/analysis' returns a summary whose date reflects the current day (not 2024) and dataSource is 'live' when live articles are available.",
+    "No new runtime dependency on a database is introduced (no supabase/postgres client added).",
+    "app/api/news/route.ts no longer references getLastFetchTimestamp/FETCH_INTERVAL_MS as the gate for fetching.",
+    "'npm run build' and 'npm run lint' still pass."
+  ],
+  "verification": [
+    "npm run lint",
+    "npm run build",
+    "npm run dev (background) then: curl -s 'http://localhost:3000/api/news' | head -c 3000  -> confirm dataSource live and recent publishedAt",
+    "curl -s 'http://localhost:3000/api/graph' | head -c 1500 -> confirm non-empty nodes",
+    "curl -s 'http://localhost:3000/api/analysis' | head -c 1500 -> confirm current-day summary"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
