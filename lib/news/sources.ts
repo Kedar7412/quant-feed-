@@ -7,7 +7,7 @@ export interface NewsSource {
 }
 
 export const newsSources: NewsSource[] = [
-  // Indian News Sources - RSS Feeds
+  // Indian News Sources - National Economic/Business RSS Feeds
   {
     name: "The Hindu - Business",
     url: "https://www.thehindu.com/business/feeder/default.rss",
@@ -71,6 +71,56 @@ export const newsSources: NewsSource[] = [
     category: "political",
     subcategory: "Indian National",
   },
+  // Indian Local/State Sources - RSS Feeds
+  {
+    name: "Deccan Herald - Business",
+    url: "https://www.deccanherald.com/rss/business.rss",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian Local",
+  },
+  {
+    name: "Indian Express - Economy",
+    url: "https://indianexpress.com/section/business/economy/feed/",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian Local",
+  },
+  {
+    name: "Business Standard - Economy",
+    url: "https://www.business-standard.com/rss/economy-101.rss",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Business Standard - Markets",
+    url: "https://www.business-standard.com/rss/markets-106.rss",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Moneycontrol - Markets",
+    url: "https://www.moneycontrol.com/rss/marketreports.xml",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Moneycontrol - Business",
+    url: "https://www.moneycontrol.com/rss/business.xml",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "The Wire - Economy",
+    url: "https://thewire.in/category/economy/feed",
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
   // International News Sources - RSS Feeds
   {
     name: "Reuters - Business",
@@ -89,6 +139,27 @@ export const newsSources: NewsSource[] = [
   {
     name: "Financial Times - World",
     url: "https://www.ft.com/world?format=rss",
+    type: "rss",
+    category: "international",
+    subcategory: "International",
+  },
+  {
+    name: "Al Jazeera - Economy",
+    url: "https://www.aljazeera.com/xml/rss/all.xml",
+    type: "rss",
+    category: "international",
+    subcategory: "International",
+  },
+  {
+    name: "BBC - Business",
+    url: "https://feeds.bbci.co.uk/news/business/rss.xml",
+    type: "rss",
+    category: "international",
+    subcategory: "International",
+  },
+  {
+    name: "CNBC - World Economy",
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19854910",
     type: "rss",
     category: "international",
     subcategory: "International",

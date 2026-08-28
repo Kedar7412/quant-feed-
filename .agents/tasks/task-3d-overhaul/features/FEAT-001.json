@@ -1,0 +1,41 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Replace react-force-graph-2d with react-force-graph-3d for immersive 3D neural network visualization with Three.js lighting, particle effects, animated connections, and proper camera controls. Upgrade the UI with glassmorphism styling, framer-motion animations, and gradient accents across all components.",
+  "status": "completed",
+  "steps": [
+    "Remove `react-force-graph-2d` and install `react-force-graph-3d` and `three` packages (also install `@types/three` as devDep). Install `framer-motion` for UI animations. Run: `bun remove react-force-graph-2d && bun add react-force-graph-3d three framer-motion && bun add -d @types/three`",
+    "Completely rewrite `components/NetworkGraph.tsx` to use ForceGraph3D with: (a) Three.js custom node objects - glowing spheres with emissive materials colored by category, size based on impact score; (b) Animated links with particles flowing along edges to show relationship strength; (c) Scene lighting - ambient light + point lights with indigo/purple tones; (d) Camera auto-rotation that pauses on user interaction; (e) Click-to-focus with smooth camera transition to selected node; (f) Background: dark space-like environment with subtle star particles; (g) Preserve the category filter panel and node detail panel from the current version; (h) Proper resize handling with containerRef",
+    "Update `app/network/page.tsx` to add framer-motion enter animations on the header and stats badge, and add a subtle pulse indicator showing the graph is 'live'",
+    "Upgrade `app/globals.css` with glassmorphism utility classes: `.glass` (backdrop-blur-xl, bg-white/5, border border-white/10), `.glass-strong` (backdrop-blur-2xl, bg-white/10, border border-white/20), gradient text utilities, and smooth animation keyframes for pulse/glow effects",
+    "Update `tailwind.config.js` to add animation keyframes for: `glow` (box-shadow pulse), `float` (subtle y-axis movement), `shimmer` (gradient sweep for loading states)",
+    "Refactor `components/Sidebar.tsx` to use glassmorphism styling (glass card background, gradient active indicator, framer-motion hover/tap animations on nav items, animated logo pulse)",
+    "Refactor `app/layout.tsx` to add a subtle animated gradient mesh background behind the main content (CSS-only gradient animation, no heavy JS)",
+    "Update `app/page.tsx` (Dashboard) to use: glassmorphism cards for stats, framer-motion staggered entrance animations on cards, gradient accent borders on hover, and animated number counters for stats",
+    "Update `components/NewsCard.tsx` to use glassmorphism card style with framer-motion hover lift effect, gradient category badges, and smooth expand/collapse for article details",
+    "Update `components/DailySummary.tsx` with glassmorphism panels, animated indicator bars for economic data, and gradient sentiment badge",
+    "Update `components/PathwaySimulator.tsx` with glassmorphism panels, animated confidence bars with gradient fills, framer-motion layout animations when toggling inputs, and glowing step connectors",
+    "Update `app/news/page.tsx` with framer-motion list animations (staggered entrance of cards), animated filter buttons with spring transitions",
+    "Update `app/analysis/page.tsx` with glassmorphism analysis cards, animated section reveals using framer-motion",
+    "Update `app/predictions/page.tsx` with glassmorphism prediction cards, animated progress rings for confidence scores, gradient status badges",
+    "Run `bun run lint` and fix any ESLint errors. Then run `bun run build` and fix any build errors. Ensure the app compiles successfully."
+  ],
+  "acceptance_criteria": [
+    "`bun run build` passes with zero errors",
+    "`bun run lint` passes with zero warnings/errors",
+    "NetworkGraph.tsx imports from react-force-graph-3d (not 2d)",
+    "NetworkGraph renders 3D scene with Three.js custom node objects (spheres with emissive glow)",
+    "Scene includes ambient and point lighting",
+    "Links have particle animations",
+    "Camera auto-rotates and supports user orbit controls",
+    "framer-motion is used for page transitions and component animations",
+    "All cards/panels use glassmorphism styling (backdrop-blur + semi-transparent bg + border)",
+    "package.json no longer lists react-force-graph-2d"
+  ],
+  "verification": [
+    "Run `bun run lint` and confirm zero errors",
+    "Run `bun run build` and confirm all pages and routes generate successfully"
+  ],
+  "blocked_reason": null,
+  "findings": "All packages installed successfully (react-force-graph-3d@1.29.1, three@0.185.1, framer-motion@13.1.1, @types/three@0.185.4). Build and lint pass clean. The bun.lock file was generated replacing the old package-lock.json lock format. Network page JS bundle is 224KB first load due to Three.js - acceptable for 3D visualization."
+}

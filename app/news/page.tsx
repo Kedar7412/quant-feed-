@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Newspaper, Search, Filter, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { NewsCard } from "@/components/NewsCard";
 import { useNews } from "@/lib/hooks/useApiData";
 
@@ -43,7 +44,11 @@ export default function NewsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Newspaper className="h-6 w-6 text-indigo-400" />
           News Feed
@@ -51,10 +56,15 @@ export default function NewsPage() {
         <p className="text-sm text-gray-400 mt-1">
           Summarized articles from Indian and international sources
         </p>
-      </div>
+      </motion.div>
 
       {/* Filters */}
-      <div className="space-y-3">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="space-y-3"
+      >
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -63,7 +73,7 @@ export default function NewsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search articles by title, content, or tags..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-800/50 border border-gray-700/50 rounded-xl text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-indigo-500/50"
+            className="w-full pl-10 pr-4 py-2.5 glass rounded-xl text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-indigo-500/50"
           />
         </div>
 
@@ -75,17 +85,19 @@ export default function NewsPage() {
           </div>
           <div className="flex gap-1.5">
             {categories.map((cat) => (
-              <button
+              <motion.button
                 key={cat}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   selectedCategory === cat
-                    ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                    : "bg-gray-800/50 text-gray-400 border border-gray-700/50 hover:bg-gray-700/50"
+                    ? "glass-strong text-indigo-300"
+                    : "glass text-gray-400 hover:text-gray-200"
                 }`}
               >
                 {cat === "all" ? "All" : cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </button>
+              </motion.button>
             ))}
           </div>
 
@@ -93,17 +105,19 @@ export default function NewsPage() {
             <span className="text-xs text-gray-500">Region:</span>
             <div className="flex gap-1.5">
               {subcategories.map((sub) => (
-                <button
+                <motion.button
                   key={sub}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedSubcategory(sub)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     selectedSubcategory === sub
-                      ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                      : "bg-gray-800/50 text-gray-400 border border-gray-700/50 hover:bg-gray-700/50"
+                      ? "glass-strong text-indigo-300"
+                      : "glass text-gray-400 hover:text-gray-200"
                   }`}
                 >
                   {sub}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -134,7 +148,7 @@ export default function NewsPage() {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Loading State */}
       {loading && (
@@ -146,9 +160,28 @@ export default function NewsPage() {
 
       {/* Articles List */}
       {!loading && (
-        <div className="space-y-3">
+        <motion.div
+          className="space-y-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.05 },
+            },
+          }}
+        >
           {filteredArticles.map((article) => (
-            <NewsCard key={article.id} article={article} />
+            <motion.div
+              key={article.id}
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0 },
+              }}
+            >
+              <NewsCard article={article} />
+            </motion.div>
           ))}
           {filteredArticles.length === 0 && (
             <div className="text-center py-12 text-gray-500">
@@ -156,7 +189,7 @@ export default function NewsPage() {
               <p className="text-sm">No articles match your filters</p>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );

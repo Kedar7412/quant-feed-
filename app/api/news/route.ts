@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { getArticles, searchArticles, getArticlesByDate } from "@/lib/news/store";
+import { getArticles, saveArticles, searchArticles, getArticlesByDate, getLastFetchTimestamp, setLastFetchTimestamp } from "@/lib/news/store";
+import { fetchLiveNews } from "@/lib/news/fetcher";
 import { mockArticles } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+
+// Minimum interval between live fetches (30 minutes in ms)
+const FETCH_INTERVAL_MS = 30 * 60 * 1000;
 
 export async function GET(request: Request) {
   try {
@@ -13,9 +17,27 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
 
+    // Always attempt live fetch if enough time has passed since last fetch
     let articles = getArticles();
+    const lastFetch = getLastFetchTimestamp();
+    const now = Date.now();
+    const shouldFetch = !lastFetch || (now - lastFetch) > FETCH_INTERVAL_MS;
 
-    // Fall back to mock data if store is empty
+    if (shouldFetch) {
+      try {
+        const liveArticles = await fetchLiveNews();
+        if (liveArticles.length > 0) {
+          saveArticles(liveArticles);
+          setLastFetchTimestamp(now);
+          // Re-read merged articles from store
+          articles = getArticles();
+        }
+      } catch (error) {
+        console.error("Live fetch failed, using cached/mock data:", error);
+      }
+    }
+
+    // Fall back to mock data if store is still empty
     if (articles.length === 0) {
       articles = mockArticles;
     }
@@ -61,15 +83,22 @@ export async function GET(request: Request) {
     const startIndex = (page - 1) * limit;
     const paginatedArticles = articles.slice(startIndex, startIndex + limit);
 
-    return NextResponse.json({
-      articles: paginatedArticles,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return NextResponse.json(
+      {
+        articles: paginatedArticles,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error in /api/news:", error);
     // Graceful fallback to mock data
