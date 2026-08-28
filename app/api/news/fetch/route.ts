@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { fetchFromAllSources } from "@/lib/news/fetcher";
 import { saveArticles, saveEdges, saveDailySummary, savePathways } from "@/lib/news/store";
 import { batchSummarize } from "@/lib/ai/summarizer";
@@ -6,7 +6,14 @@ import { extractRelationships } from "@/lib/ai/relationship-extractor";
 import { generateDailySummary } from "@/lib/ai/daily-summary-generator";
 import { analyzePathways } from "@/lib/ai/pathway-analyzer";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Authenticate: require CRON_SECRET to be set and match the auth header
+  const authHeader = request.headers.get("authorization");
+  const secret = process.env.CRON_SECRET;
+  if (!secret || authHeader !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     // Step 1: Fetch articles from all sources
     const articles = await fetchFromAllSources();

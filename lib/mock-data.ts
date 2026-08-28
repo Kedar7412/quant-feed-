@@ -311,6 +311,11 @@ export const mockNodes: EconomicNode[] = mockArticles.map((article) => ({
       : article.category === "economic"
       ? "#f59e0b"
       : "#ef4444",
+  title: article.title,
+  summary: article.summary,
+  source: article.source,
+  economicImpactScore: article.economicImpactScore,
+  tags: article.tags,
 }));
 
 export const mockEdges: EconomicEdge[] = [

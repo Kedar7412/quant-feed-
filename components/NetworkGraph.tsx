@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { X, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { EconomicNode, GraphData } from "@/lib/types";
-import { mockArticles } from "@/lib/mock-data";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
@@ -108,7 +107,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
   };
 
   const selectedArticle = selectedNode
-    ? mockArticles.find((a) => a.id === selectedNode.id)
+    ? graphData.nodes.find((n) => n.id === selectedNode.id)
     : null;
 
   return (
@@ -233,20 +232,30 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
             <span className="text-xs text-gray-400 capitalize">
               {selectedNode.category}
             </span>
-            <span className="text-xs text-gray-500">|</span>
-            <span className="text-xs text-gray-500">{selectedArticle.source}</span>
+            {selectedArticle.source && (
+              <>
+                <span className="text-xs text-gray-500">|</span>
+                <span className="text-xs text-gray-500">{selectedArticle.source}</span>
+              </>
+            )}
           </div>
           <h3 className="text-sm font-semibold text-white mb-2">
-            {selectedArticle.title}
+            {selectedArticle.title || selectedArticle.label}
           </h3>
-          <p className="text-xs text-gray-400 mb-3">{selectedArticle.summary}</p>
+          {selectedArticle.summary && (
+            <p className="text-xs text-gray-400 mb-3">{selectedArticle.summary}</p>
+          )}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-indigo-400 font-medium">
-              Impact: {selectedArticle.economicImpactScore}/10
-            </span>
-            <span className="text-xs text-gray-500">
-              {selectedArticle.tags.join(", ")}
-            </span>
+            {selectedArticle.economicImpactScore && (
+              <span className="text-xs text-indigo-400 font-medium">
+                Impact: {selectedArticle.economicImpactScore}/10
+              </span>
+            )}
+            {selectedArticle.tags && (
+              <span className="text-xs text-gray-500">
+                {selectedArticle.tags.join(", ")}
+              </span>
+            )}
           </div>
         </div>
       )}

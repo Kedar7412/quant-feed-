@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ArrowRight,
   ToggleLeft,
   ToggleRight,
   TrendingUp,
   TrendingDown,
+  Loader2,
 } from "lucide-react";
 import { Pathway, NewsArticle } from "@/lib/types";
+import { useSimulation } from "@/lib/hooks/useApiData";
 
 interface PathwaySimulatorProps {
   pathways: Pathway[];
@@ -22,6 +24,34 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(
     pathways[0] || null
   );
+  const [simulatedPathways, setSimulatedPathways] = useState<Pathway[]>(pathways);
+  const { simulate, loading: simulating } = useSimulation();
+
+  // Debounced simulation call when active inputs change
+  const runSimulation = useCallback(async () => {
+    const articleIds = Array.from(activeInputs);
+    if (articleIds.length === 0) return;
+    const result = await simulate(articleIds);
+    setSimulatedPathways(result);
+    // Update selected pathway if it exists in new results
+    if (selectedPathway) {
+      const updated = result.find((p) => p.id === selectedPathway.id);
+      if (updated) {
+        setSelectedPathway(updated);
+      } else if (result.length > 0) {
+        setSelectedPathway(result[0]);
+      }
+    }
+  }, [activeInputs, simulate, selectedPathway]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      runSimulation();
+    }, 500); // debounce 500ms
+    return () => clearTimeout(timer);
+    // Only re-run when activeInputs changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeInputs]);
 
   const toggleInput = (articleId: string) => {
     setActiveInputs((prev) => {
@@ -33,12 +63,6 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
       }
       return next;
     });
-  };
-
-  const getAdjustedConfidence = (baseConfidence: number): number => {
-    const activeRatio = activeInputs.size / articles.length;
-    const adjustment = (activeRatio - 0.5) * 20;
-    return Math.min(100, Math.max(0, Math.round(baseConfidence + adjustment)));
   };
 
   return (
@@ -80,9 +104,17 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
 
       {/* Pathway Selection & Visualization */}
       <div className="lg:col-span-2 space-y-4">
+        {/* Simulation loading indicator */}
+        {simulating && (
+          <div className="flex items-center gap-2 text-xs text-indigo-400">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Running simulation...</span>
+          </div>
+        )}
+
         {/* Pathway Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {pathways.map((pathway) => (
+          {simulatedPathways.map((pathway) => (
             <button
               key={pathway.id}
               onClick={() => setSelectedPathway(pathway)}
@@ -111,13 +143,13 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
               </div>
               <div className="text-right shrink-0">
                 <div className="flex items-center gap-1">
-                  {getAdjustedConfidence(selectedPathway.probability) > 50 ? (
+                  {selectedPathway.probability > 50 ? (
                     <TrendingUp className="h-4 w-4 text-green-400" />
                   ) : (
                     <TrendingDown className="h-4 w-4 text-red-400" />
                   )}
                   <span className="text-lg font-bold text-white">
-                    {getAdjustedConfidence(selectedPathway.probability)}%
+                    {selectedPathway.probability}%
                   </span>
                 </div>
                 <p className="text-xs text-gray-500">probability</p>
@@ -127,7 +159,6 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
             {/* Steps visualization */}
             <div className="space-y-3 mt-6">
               {selectedPathway.steps.map((step, idx) => {
-                const adjustedConfidence = getAdjustedConfidence(step.confidence);
                 const levelColor =
                   step.level === "micro"
                     ? "border-green-500/30 bg-green-500/5"
@@ -162,7 +193,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
                             {step.level}
                           </span>
                           <span className="text-xs text-gray-400 font-mono">
-                            {adjustedConfidence}%
+                            {step.confidence}%
                           </span>
                         </div>
                       </div>
@@ -170,7 +201,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
                       <div className="mt-2 h-1 w-full bg-gray-700/50 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                          style={{ width: `${adjustedConfidence}%` }}
+                          style={{ width: `${step.confidence}%` }}
                         />
                       </div>
                     </div>

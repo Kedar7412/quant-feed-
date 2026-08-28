@@ -2,31 +2,46 @@ import { NewsArticle, EconomicEdge, DailySummary, Pathway, Prediction, GraphData
 import * as fs from "fs";
 import * as path from "path";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// On Vercel, process.cwd() is read-only. Use /tmp for writes (ephemeral cache).
+// For reads, try /tmp first (cache hit), then fall back to bundled data/ directory (mock/seed data).
+const WRITE_DIR = path.join("/tmp", "quant-feed-data");
+const READ_FALLBACK_DIR = path.join(process.cwd(), "data");
 
-function ensureDataDir(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+function ensureWriteDir(): void {
+  if (!fs.existsSync(WRITE_DIR)) {
+    fs.mkdirSync(WRITE_DIR, { recursive: true });
   }
 }
 
 function readJsonFile<T>(filename: string, defaultValue: T): T {
-  ensureDataDir();
-  const filePath = path.join(DATA_DIR, filename);
+  // Try /tmp first (writable cache), then fall back to bundled data directory
+  const tmpPath = path.join(WRITE_DIR, filename);
+  const fallbackPath = path.join(READ_FALLBACK_DIR, filename);
+
   try {
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, "utf-8");
+    if (fs.existsSync(tmpPath)) {
+      const data = fs.readFileSync(tmpPath, "utf-8");
       return JSON.parse(data) as T;
     }
   } catch (error) {
-    console.error(`Error reading ${filename}:`, error);
+    console.error(`Error reading ${filename} from /tmp:`, error);
   }
+
+  try {
+    if (fs.existsSync(fallbackPath)) {
+      const data = fs.readFileSync(fallbackPath, "utf-8");
+      return JSON.parse(data) as T;
+    }
+  } catch (error) {
+    console.error(`Error reading ${filename} from fallback:`, error);
+  }
+
   return defaultValue;
 }
 
 function writeJsonFile<T>(filename: string, data: T): void {
-  ensureDataDir();
-  const filePath = path.join(DATA_DIR, filename);
+  ensureWriteDir();
+  const filePath = path.join(WRITE_DIR, filename);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
@@ -81,8 +96,19 @@ export function searchArticles(query: string): NewsArticle[] {
 }
 
 // Edges/Graph
-export function saveEdges(edges: EconomicEdge[]): void {
-  writeJsonFile("edges.json", edges);
+export function saveEdges(newEdges: EconomicEdge[]): void {
+  const existingEdges = getEdges();
+  for (const edge of newEdges) {
+    const existingIndex = existingEdges.findIndex(
+      (e) => e.source === edge.source && e.target === edge.target
+    );
+    if (existingIndex >= 0) {
+      existingEdges[existingIndex] = edge;
+    } else {
+      existingEdges.push(edge);
+    }
+  }
+  writeJsonFile("edges.json", existingEdges);
 }
 
 export function getEdges(): EconomicEdge[] {
@@ -107,6 +133,12 @@ export function getGraphData(): GraphData {
           : article.category === "economic"
             ? "#f59e0b"
             : "#ef4444",
+    // Include article metadata for the detail panel
+    title: article.title,
+    summary: article.summary,
+    source: article.source,
+    economicImpactScore: article.economicImpactScore,
+    tags: article.tags,
   }));
 
   return { nodes, links: edges };

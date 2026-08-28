@@ -20,6 +20,12 @@ export interface EconomicNode {
   y?: number;
   val?: number;
   color?: string;
+  // Article metadata for node detail panel
+  title?: string;
+  summary?: string;
+  source?: string;
+  economicImpactScore?: number;
+  tags?: string[];
 }
 
 export interface EconomicEdge {

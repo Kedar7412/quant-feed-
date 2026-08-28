@@ -45,11 +45,23 @@ export async function summarizeArticle(
 export async function batchSummarize(
   articles: Pick<NewsArticle, "title" | "summary" | "source" | "category">[]
 ): Promise<string[]> {
-  const results = await Promise.allSettled(
-    articles.map((article) => summarizeArticle(article))
-  );
+  const BATCH_SIZE = 5;
+  const results: string[] = [];
 
-  return results.map((result, index) =>
-    result.status === "fulfilled" ? result.value : articles[index].summary
-  );
+  // Process in batches of BATCH_SIZE to avoid overwhelming OpenAI rate limits
+  for (let i = 0; i < articles.length; i += BATCH_SIZE) {
+    const batch = articles.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map((article) => summarizeArticle(article))
+    );
+
+    for (let j = 0; j < batchResults.length; j++) {
+      const result = batchResults[j];
+      results.push(
+        result.status === "fulfilled" ? result.value : articles[i + j].summary
+      );
+    }
+  }
+
+  return results;
 }
