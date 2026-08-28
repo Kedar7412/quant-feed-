@@ -1,8 +1,10 @@
 "use client";
 
 import { Brain, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { PathwaySimulator } from "@/components/PathwaySimulator";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { useAnalysis, useNews } from "@/lib/hooks/useApiData";
 
 export default function AnalysisPage() {
@@ -13,6 +15,7 @@ export default function AnalysisPage() {
   const summary = analysisData?.summary;
   const pathways = analysisData?.pathways || [];
   const articles = newsData?.articles || [];
+  const dataSource = analysisData?.dataSource || "sample";
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -21,14 +24,18 @@ export default function AnalysisPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex items-start justify-between gap-4"
       >
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Brain className="h-6 w-6 text-indigo-400" />
-          AI Analysis
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Economic pathway predictions from micro to macro with interactive simulation
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Brain className="h-6 w-6 text-indigo-400" />
+            AI Analysis
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Economic pathway predictions from micro to macro with interactive simulation
+          </p>
+        </div>
+        {!loading && <DataSourceBadge dataSource={dataSource} />}
       </motion.div>
 
       {loading ? (
@@ -45,9 +52,16 @@ export default function AnalysisPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="glass rounded-xl p-6"
           >
-            <h2 className="text-base font-semibold text-white mb-3">
-              Today&apos;s AI Analysis
-            </h2>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h2 className="text-base font-semibold text-white">
+                AI Analysis
+              </h2>
+              {summary?.date && (
+                <span className="text-xs text-gray-500">
+                  {format(new Date(summary.date), "MMM dd, yyyy")}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-300 leading-relaxed mb-4">
               {summary?.headline || "Loading analysis..."}
             </p>

@@ -1,8 +1,10 @@
 "use client";
 
 import { DailySummary } from "@/components/DailySummary";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
+import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { useAnalysis, useNews } from "@/lib/hooks/useApiData";
-import { Zap, Newspaper, TrendingUp, Network, Loader2 } from "lucide-react";
+import { Zap, Newspaper, TrendingUp, Network } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -30,101 +32,107 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { data: analysisData, loading: analysisLoading } = useAnalysis();
-  const { data: newsData, loading: newsLoading } = useNews();
+  const { data: newsData, loading: newsLoading, dataSource } = useNews();
 
   const loading = analysisLoading || newsLoading;
   const summary = analysisData?.summary;
   const articles = newsData?.articles || [];
 
   const topArticles = [...articles]
-    .sort((a, b) => b.economicImpactScore - a.economicImpactScore)
+    .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
     .slice(0, 5);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
-        <span className="ml-3 text-sm text-gray-400">Loading dashboard...</span>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
     <motion.div
-      className="max-w-7xl mx-auto space-y-8"
+      className="max-w-7xl mx-auto space-y-8 py-2"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Header */}
+      {/* Premium Hero Header */}
       <motion.div variants={itemVariants} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Zap className="h-6 w-6 text-indigo-400" />
-            Dashboard
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3 text-glow">
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Zap className="h-7 w-7 text-indigo-400" />
+            </motion.div>
+            <span className="gradient-text">Economic Intelligence</span>
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            AI-powered economic intelligence for {summary?.date || new Date().toISOString().split("T")[0]}
+          <p className="text-sm text-gray-400 mt-2 ml-10">
+            AI-powered analysis for{" "}
+            <span className="text-gray-300 font-medium">
+              {summary?.date || new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </span>
           </p>
         </div>
+        <DataSourceBadge dataSource={dataSource} />
       </motion.div>
 
       {/* Quick Stats */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Link
           href="/news"
-          className="glass rounded-xl p-4 hover:border-indigo-500/30 transition-all group hover:animate-glow"
+          className="glass-premium rounded-xl p-5 hover:shadow-glow-sm transition-all duration-300 group"
         >
-          <Newspaper className="h-5 w-5 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
+          <Newspaper className="h-5 w-5 text-indigo-400 mb-3 group-hover:scale-110 transition-transform" />
           <p className="text-2xl font-bold text-white">{articles.length}</p>
-          <p className="text-xs text-gray-400">Articles Analyzed</p>
+          <p className="text-xs text-gray-500 mt-0.5">Articles Analyzed</p>
         </Link>
         <Link
           href="/network"
-          className="glass rounded-xl p-4 hover:border-indigo-500/30 transition-all group hover:animate-glow"
+          className="glass-premium rounded-xl p-5 hover:shadow-glow-sm transition-all duration-300 group"
         >
-          <Network className="h-5 w-5 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
+          <Network className="h-5 w-5 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
           <p className="text-2xl font-bold text-white">{summary?.topClusters.length || 0}</p>
-          <p className="text-xs text-gray-400">News Clusters</p>
+          <p className="text-xs text-gray-500 mt-0.5">News Clusters</p>
         </Link>
         <Link
           href="/analysis"
-          className="glass rounded-xl p-4 hover:border-indigo-500/30 transition-all group hover:animate-glow"
+          className="glass-premium rounded-xl p-5 hover:shadow-glow-sm transition-all duration-300 group"
         >
-          <TrendingUp className="h-5 w-5 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
+          <TrendingUp className="h-5 w-5 text-cyan-400 mb-3 group-hover:scale-110 transition-transform" />
           <p className="text-2xl font-bold text-white">{analysisData?.pathways.length || 0}</p>
-          <p className="text-xs text-gray-400">Active Pathways</p>
+          <p className="text-xs text-gray-500 mt-0.5">Active Pathways</p>
         </Link>
-        <div className="glass rounded-xl p-4">
-          <Zap className="h-5 w-5 text-green-400 mb-2" />
+        <div className="glass-premium rounded-xl p-5">
+          <Zap className="h-5 w-5 text-green-400 mb-3" />
           <p className="text-2xl font-bold text-white">
             {summary?.overallSentiment === "bullish" ? "Bullish" : summary?.overallSentiment === "bearish" ? "Bearish" : "Neutral"}
           </p>
-          <p className="text-xs text-gray-400">Market Sentiment</p>
+          <p className="text-xs text-gray-500 mt-0.5">Market Sentiment</p>
         </div>
       </motion.div>
 
       {/* Daily Summary */}
       {summary && (
-        <motion.div variants={itemVariants} className="glass rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+        <motion.div variants={itemVariants} className="glass-premium rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-5 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-glow-sm" />
             Daily Economic Summary
           </h2>
           <DailySummary summary={summary} />
         </motion.div>
       )}
 
-      {/* Top News Clusters */}
+      {/* Top News Clusters & Articles */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+        <div className="glass-premium rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
             Top News Clusters
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {(summary?.topClusters || []).map((cluster) => (
               <div
                 key={cluster.id}
-                className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5"
+                className="flex items-center justify-between p-3 bg-white/[0.03] rounded-lg border border-white/[0.05] hover:border-white/10 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span
@@ -137,7 +145,7 @@ export default function DashboardPage() {
                   <span className="text-sm text-gray-200">{cluster.title}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
+                  <span className="text-[10px] text-gray-500">
                     {cluster.articleCount} articles
                   </span>
                   <span className="text-xs font-medium text-indigo-400">
@@ -150,15 +158,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Top Impact Articles */}
-        <div className="glass rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Highest Impact Articles
+        <div className="glass-premium rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+            Most Relevant Articles
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {topArticles.map((article) => (
               <div
                 key={article.id}
-                className="p-3 bg-white/5 rounded-lg border border-white/5"
+                className="p-3 bg-white/[0.03] rounded-lg border border-white/[0.05] hover:border-white/10 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span
@@ -168,7 +177,12 @@ export default function DashboardPage() {
                   >
                     {article.category}
                   </span>
-                  <span className="text-xs text-gray-500">{article.source}</span>
+                  <span className="text-[10px] text-gray-500">{article.source}</span>
+                  {article.relevanceScore !== undefined && (
+                    <span className="text-[10px] text-indigo-400 ml-auto font-medium">
+                      {Math.round(article.relevanceScore * 100)}% relevant
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-200 line-clamp-1">
                   {article.title}

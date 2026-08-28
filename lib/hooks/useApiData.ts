@@ -7,6 +7,7 @@ import {
   DailySummary,
   Pathway,
   Prediction,
+  TopicCorrelation,
 } from "@/lib/types";
 import {
   mockArticles,
@@ -14,6 +15,7 @@ import {
   mockDailySummary,
   mockPathways,
   mockPredictions,
+  applyPredictionExpiry,
 } from "@/lib/mock-data";
 
 interface PaginationInfo {
@@ -26,22 +28,31 @@ interface PaginationInfo {
 interface NewsResponse {
   articles: NewsArticle[];
   pagination: PaginationInfo;
+  dataSource: "live" | "cached" | "sample";
 }
 
 interface AnalysisResponse {
   summary: DailySummary;
   pathways: Pathway[];
+  dataSource: "live" | "cached" | "sample";
 }
 
 interface PredictionsResponse {
   predictions: Prediction[];
+  dataSource: "live" | "cached" | "sample";
   metrics: {
     total: number;
     active: number;
     correct: number;
     incorrect: number;
+    expired: number;
     accuracy: number;
   };
+}
+
+interface GraphResponse extends GraphData {
+  correlations: TopicCorrelation[];
+  dataSource: "live" | "cached" | "sample";
 }
 
 export function useNews(params?: {
@@ -49,10 +60,12 @@ export function useNews(params?: {
   search?: string;
   page?: number;
   limit?: number;
+  sort?: string;
 }) {
   const [data, setData] = useState<NewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<"live" | "cached" | "sample">("sample");
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -64,6 +77,7 @@ export function useNews(params?: {
       if (params?.search) queryParams.set("search", params.search);
       if (params?.page) queryParams.set("page", String(params.page));
       if (params?.limit) queryParams.set("limit", String(params.limit));
+      if (params?.sort) queryParams.set("sort", params.sort);
 
       const response = await fetch(`/api/news?${queryParams.toString()}`);
 
@@ -73,35 +87,39 @@ export function useNews(params?: {
 
       const result: NewsResponse = await response.json();
       setData(result);
+      setDataSource(result.dataSource || "sample");
     } catch (err) {
       console.error("Failed to fetch news:", err);
       setError(String(err));
       // Fallback to mock data
       setData({
-        articles: mockArticles,
+        articles: mockArticles.map((a) => ({ ...a, isLiveData: false })),
         pagination: {
           page: 1,
           limit: 20,
           total: mockArticles.length,
           totalPages: 1,
         },
+        dataSource: "sample",
       });
+      setDataSource("sample");
     } finally {
       setLoading(false);
     }
-  }, [params?.category, params?.search, params?.page, params?.limit]);
+  }, [params?.category, params?.search, params?.page, params?.limit, params?.sort]);
 
   useEffect(() => {
     fetchNews();
   }, [fetchNews]);
 
-  return { data, loading, error, refetch: fetchNews };
+  return { data, loading, error, dataSource, refetch: fetchNews };
 }
 
 export function useGraphData(params?: { category?: string }) {
-  const [data, setData] = useState<GraphData | null>(null);
+  const [data, setData] = useState<GraphResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<"live" | "cached" | "sample">("sample");
 
   const fetchGraph = useCallback(async () => {
     setLoading(true);
@@ -117,12 +135,18 @@ export function useGraphData(params?: { category?: string }) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const result: GraphData = await response.json();
+      const result: GraphResponse = await response.json();
       setData(result);
+      setDataSource(result.dataSource || "sample");
     } catch (err) {
       console.error("Failed to fetch graph data:", err);
       setError(String(err));
-      setData(mockGraphData);
+      setData({
+        ...mockGraphData,
+        correlations: [],
+        dataSource: "sample",
+      });
+      setDataSource("sample");
     } finally {
       setLoading(false);
     }
@@ -132,7 +156,7 @@ export function useGraphData(params?: { category?: string }) {
     fetchGraph();
   }, [fetchGraph]);
 
-  return { data, loading, error, refetch: fetchGraph };
+  return { data, loading, error, dataSource, refetch: fetchGraph };
 }
 
 export function useAnalysis() {
@@ -158,6 +182,7 @@ export function useAnalysis() {
       setData({
         summary: mockDailySummary,
         pathways: mockPathways,
+        dataSource: "sample",
       });
     } finally {
       setLoading(false);
@@ -191,14 +216,16 @@ export function usePredictions() {
     } catch (err) {
       console.error("Failed to fetch predictions:", err);
       setError(String(err));
+      const fallback = applyPredictionExpiry(mockPredictions);
       setData({
-        predictions: mockPredictions,
+        predictions: fallback,
+        dataSource: "sample",
         metrics: {
-          total: mockPredictions.length,
-          active: mockPredictions.filter((p) => p.status === "active").length,
-          correct: mockPredictions.filter((p) => p.status === "correct").length,
-          incorrect: mockPredictions.filter((p) => p.status === "incorrect")
-            .length,
+          total: fallback.length,
+          active: fallback.filter((p) => p.status === "active").length,
+          correct: fallback.filter((p) => p.status === "correct").length,
+          incorrect: fallback.filter((p) => p.status === "incorrect").length,
+          expired: fallback.filter((p) => p.status === "expired").length,
           accuracy: 67,
         },
       });

@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getGraphData, getArticles, saveArticles, saveEdges } from "@/lib/news/store";
 import { fetchLiveNews } from "@/lib/news/fetcher";
 import { extractRelationships } from "@/lib/ai/relationship-extractor";
-import { mockGraphData } from "@/lib/mock-data";
+import { mockGraphData, mockArticles } from "@/lib/mock-data";
 import { GraphData } from "@/lib/types";
+import { computeFreshnessScore } from "@/lib/freshness/recency-scorer";
+import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    let dataSource: "live" | "cached" | "sample" = "cached";
     let graphData: GraphData = getGraphData();
 
     // If graph store is empty, attempt to fetch live data and generate relationships
@@ -27,6 +30,7 @@ export async function GET(request: Request) {
           if (liveArticles.length > 0) {
             saveArticles(liveArticles);
             articles = liveArticles;
+            dataSource = "live";
           }
         }
 
@@ -45,7 +49,36 @@ export async function GET(request: Request) {
     // Final fallback to mock data if still empty
     if (graphData.nodes.length === 0) {
       graphData = mockGraphData;
+      dataSource = "sample";
     }
+
+    // Add freshnessScore to each node
+    const articles = getArticles().length > 0 ? getArticles() : mockArticles;
+    const articleMap = new Map(articles.map((a) => [a.id, a]));
+
+    const categoryPlaceholders: Record<string, string> = {
+      domestic: "https://placehold.co/120x80/1a2e1a/22c55e?text=Domestic",
+      international: "https://placehold.co/120x80/1a1a2e/3b82f6?text=Global",
+      economic: "https://placehold.co/120x80/2e2a1a/f59e0b?text=Economic",
+      political: "https://placehold.co/120x80/2e1a1a/ef4444?text=Political",
+    };
+
+    graphData = {
+      ...graphData,
+      nodes: graphData.nodes.map((node) => {
+        const article = articleMap.get(node.articleId);
+        return {
+          ...node,
+          freshnessScore: article
+            ? computeFreshnessScore(article.publishedAt)
+            : 0,
+          url: article?.url,
+          imageUrl:
+            categoryPlaceholders[node.category] ||
+            "https://placehold.co/120x80/1a1a2e/6366f1?text=News",
+        };
+      }),
+    };
 
     // Filter by category
     if (category && category !== "all") {
@@ -61,9 +94,6 @@ export async function GET(request: Request) {
 
     // Filter by date range
     if (startDate || endDate) {
-      const articles = getArticles();
-      const articleMap = new Map(articles.map((a) => [a.id, a]));
-
       const filteredNodes = graphData.nodes.filter((node) => {
         const article = articleMap.get(node.articleId);
         if (!article) return true; // Keep nodes without articles
@@ -80,14 +110,29 @@ export async function GET(request: Request) {
       graphData = { nodes: filteredNodes, links: filteredLinks };
     }
 
-    return NextResponse.json(graphData, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
+    // Build topic correlations from available articles
+    const correlations = buildTopicCorrelations(articles);
+
+    return NextResponse.json(
+      {
+        ...graphData,
+        correlations,
+        dataSource,
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error in /api/graph:", error);
     // Graceful fallback
-    return NextResponse.json(mockGraphData);
+    const correlations = buildTopicCorrelations(mockArticles);
+    return NextResponse.json({
+      ...mockGraphData,
+      correlations,
+      dataSource: "sample",
+    });
   }
 }

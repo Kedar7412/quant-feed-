@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "QuantFeed - AI-Powered Economic Intelligence",
@@ -27,8 +34,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="antialiased min-h-screen bg-[#0a0a0f]">
+    <html lang="en" className={`dark ${inter.variable}`}>
+      <body className={`${inter.className} antialiased min-h-screen bg-dark-900`}>
+        <div className="noise-overlay" />
         <div className="gradient-mesh" />
         <div className="relative flex h-screen overflow-hidden">
           <Sidebar />
