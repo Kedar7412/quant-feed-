@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Overhaul the news data pipeline to ensure LIVE fresh data on every page load instead of stale mock data. Add free news APIs (GNews, NewsData.io) alongside existing RSS feeds. Expand RSS sources to include more Indian local/state sources. Make the /api/news route always attempt live fetch before falling back to mock data, so users never see old content unless all sources fail.",
+  "status": "pending",
+  "steps": [
+    "Add new environment variables to `.env.example`: GNEWS_API_KEY (free tier: https://gnews.io), NEWSDATA_API_KEY (free tier: https://newsdata.io). Add comments explaining these are optional free-tier keys.",
+    "Create `lib/news/api-fetcher.ts` implementing two API-based news fetchers: (a) GNews API fetcher - fetches Indian business/economy news from `https://gnews.io/api/v4/top-headlines?category=business&country=in&token=KEY` and international news from `https://gnews.io/api/v4/top-headlines?category=business&lang=en&token=KEY`; (b) NewsData.io API fetcher - fetches from `https://newsdata.io/api/1/latest?country=in&category=business&apikey=KEY`. Both should map responses to the existing NewsArticle interface, handle errors gracefully, and return empty array on failure.",
+    "Expand `lib/news/sources.ts` with additional RSS feeds: (a) Indian local/state: Deccan Herald, Indian Express Economy, Business Standard, Moneycontrol; (b) More international: Al Jazeera Economy, BBC Business, CNBC; (c) Add at least 6-8 new sources total",
+    "Rewrite `lib/news/fetcher.ts` to: (a) Import and call both RSS and API fetchers in parallel; (b) Deduplicate articles by title similarity (simple normalized substring match); (c) Sort by publishedAt descending; (d) Return the combined, deduplicated, sorted list. Export a new `fetchLiveNews()` function that does RSS + API fetch combined.",
+    "Rewrite `app/api/news/route.ts` to ALWAYS attempt a live fetch first on every GET request (call `fetchLiveNews()`), merge results with any cached articles from the store, then apply filters/pagination. Only fall back to mock data if the live fetch returns zero articles AND the store is empty. Add a Cache-Control header of `no-store` to force fresh data.",
+    "Rewrite `app/api/graph/route.ts` similarly - if the graph store is empty, fetch live news first, generate relationships on the fly using the fallback tag-matching algorithm from `lib/ai/relationship-extractor.ts`, then return the graph. This ensures the network page always has fresh interconnected data.",
+    "Update `app/api/news/fetch/route.ts` (the cron endpoint) to also call the new API fetchers in addition to RSS, so scheduled fetches are more comprehensive.",
+    "Update `lib/news/store.ts` to also save a `lastFetchTimestamp` so the API route can decide whether to re-fetch (e.g., if last fetch was more than 30 minutes ago, force a fresh fetch).",
+    "Update `lib/mock-data.ts` to update the mock article dates to be relative to `new Date()` (today minus 0-3 days) instead of hardcoded 2024 dates, so even in fallback mode the data looks current.",
+    "Run `bun run lint` and fix any ESLint errors. Then run `bun run build` and fix any build errors."
+  ],
+  "acceptance_criteria": [
+    "`bun run build` passes with zero errors",
+    "`bun run lint` passes with zero warnings/errors",
+    "GET /api/news always attempts live fetch before falling back to mock data",
+    "lib/news/api-fetcher.ts exists with GNews and NewsData.io integration",
+    "lib/news/sources.ts has at least 18+ RSS feed sources (was 12, adding 6+)",
+    "Articles from multiple sources are deduplicated by title similarity",
+    "Mock data dates are relative to current date, not hardcoded 2024",
+    ".env.example documents GNEWS_API_KEY and NEWSDATA_API_KEY",
+    "The /api/graph route generates a graph from live data when store is empty"
+  ],
+  "verification": [
+    "Run `bun run lint` and confirm zero errors",
+    "Run `bun run build` and confirm all pages and routes generate successfully"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
