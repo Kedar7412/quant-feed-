@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getGraphData, getArticles } from "@/lib/news/store";
+import { getGraphData, getArticles, saveArticles, saveEdges } from "@/lib/news/store";
+import { fetchLiveNews } from "@/lib/news/fetcher";
+import { extractRelationships } from "@/lib/ai/relationship-extractor";
 import { mockGraphData } from "@/lib/mock-data";
 import { GraphData } from "@/lib/types";
 
@@ -14,7 +16,33 @@ export async function GET(request: Request) {
 
     let graphData: GraphData = getGraphData();
 
-    // Fall back to mock data if store is empty
+    // If graph store is empty, attempt to fetch live data and generate relationships
+    if (graphData.nodes.length === 0) {
+      try {
+        let articles = getArticles();
+
+        // If article store is also empty, try a live fetch
+        if (articles.length === 0) {
+          const liveArticles = await fetchLiveNews();
+          if (liveArticles.length > 0) {
+            saveArticles(liveArticles);
+            articles = liveArticles;
+          }
+        }
+
+        // Generate relationships from articles using tag-matching fallback
+        if (articles.length > 0) {
+          const edges = await extractRelationships(articles);
+          saveEdges(edges);
+          // Re-read graph data from store (now populated)
+          graphData = getGraphData();
+        }
+      } catch (error) {
+        console.error("Error generating live graph data:", error);
+      }
+    }
+
+    // Final fallback to mock data if still empty
     if (graphData.nodes.length === 0) {
       graphData = mockGraphData;
     }
@@ -52,7 +80,11 @@ export async function GET(request: Request) {
       graphData = { nodes: filteredNodes, links: filteredLinks };
     }
 
-    return NextResponse.json(graphData);
+    return NextResponse.json(graphData, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   } catch (error) {
     console.error("Error in /api/graph:", error);
     // Graceful fallback

@@ -173,6 +173,16 @@ export function getPathways(): Pathway[] {
   return readJsonFile<Pathway[]>("pathways.json", []);
 }
 
+// Last Fetch Timestamp
+export function getLastFetchTimestamp(): number | null {
+  const data = readJsonFile<{ timestamp: number }>("last-fetch.json", { timestamp: 0 });
+  return data.timestamp || null;
+}
+
+export function setLastFetchTimestamp(timestamp: number): void {
+  writeJsonFile("last-fetch.json", { timestamp });
+}
+
 // Predictions
 export function savePredictions(predictions: Prediction[]): void {
   writeJsonFile("predictions.json", predictions);

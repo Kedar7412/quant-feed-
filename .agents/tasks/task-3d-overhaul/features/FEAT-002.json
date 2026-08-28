@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Overhaul the news data pipeline to ensure LIVE fresh data on every page load instead of stale mock data. Add free news APIs (GNews, NewsData.io) alongside existing RSS feeds. Expand RSS sources to include more Indian local/state sources. Make the /api/news route always attempt live fetch before falling back to mock data, so users never see old content unless all sources fail.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Add new environment variables to `.env.example`: GNEWS_API_KEY (free tier: https://gnews.io), NEWSDATA_API_KEY (free tier: https://newsdata.io). Add comments explaining these are optional free-tier keys.",
     "Create `lib/news/api-fetcher.ts` implementing two API-based news fetchers: (a) GNews API fetcher - fetches Indian business/economy news from `https://gnews.io/api/v4/top-headlines?category=business&country=in&token=KEY` and international news from `https://gnews.io/api/v4/top-headlines?category=business&lang=en&token=KEY`; (b) NewsData.io API fetcher - fetches from `https://newsdata.io/api/1/latest?country=in&category=business&apikey=KEY`. Both should map responses to the existing NewsArticle interface, handle errors gracefully, and return empty array on failure.",

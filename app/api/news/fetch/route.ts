@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchFromAllSources } from "@/lib/news/fetcher";
-import { saveArticles, saveEdges, saveDailySummary, savePathways } from "@/lib/news/store";
+import { fetchLiveNews } from "@/lib/news/fetcher";
+import { saveArticles, saveEdges, saveDailySummary, savePathways, setLastFetchTimestamp } from "@/lib/news/store";
 import { batchSummarize } from "@/lib/ai/summarizer";
 import { extractRelationships } from "@/lib/ai/relationship-extractor";
 import { generateDailySummary } from "@/lib/ai/daily-summary-generator";
@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Step 1: Fetch articles from all sources
-    const articles = await fetchFromAllSources();
+    // Step 1: Fetch articles from all sources (RSS + APIs combined)
+    const articles = await fetchLiveNews();
 
     if (articles.length === 0) {
       return NextResponse.json(
@@ -31,8 +31,9 @@ export async function POST(request: NextRequest) {
       articles[i].summary = summaries[i];
     }
 
-    // Step 3: Save articles to store
+    // Step 3: Save articles to store and update timestamp
     saveArticles(articles);
+    setLastFetchTimestamp(Date.now());
 
     // Step 4: Extract relationships between articles
     const edges = await extractRelationships(articles);
