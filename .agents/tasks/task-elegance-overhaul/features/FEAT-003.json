@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Premium visual design overhaul - ultra-elegant dark theme with Bloomberg Terminal meets Apple design language aesthetics. Refined typography, subtle gradients, smooth micro-interactions, polished loading states, premium card designs, and enhanced color system.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Step 1: Update `app/globals.css` - (a) Add a premium font import (Inter from Google Fonts via @import). (b) Enhance the gradient-mesh background with richer, more layered gradients (add a fourth radial gradient, slow down animation to 30s). (c) Add new utility classes: `.glass-premium` (stronger blur, more border glow), `.shimmer-loading` (animated shimmer gradient for loading skeletons), `.text-glow` (subtle text-shadow glow). (d) Add premium scrollbar styles (thinner, more translucent). (e) Add a `.card-hover-glow` class that adds an animated border glow on hover matching the card's category color.",
     "Step 2: Update `tailwind.config.js` - (a) Add Inter font family. (b) Add new animations: `fadeIn`, `slideUp`, `scaleIn`, `borderGlow`. (c) Add richer color palette: deeper dark background variants (dark-900: '#06060a', dark-800: '#0d0d14'), accent gradients. (d) Add backdrop-blur variants (3xl: 48px). (e) Add custom box-shadow values for premium glow effects.",

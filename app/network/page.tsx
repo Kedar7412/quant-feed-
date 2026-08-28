@@ -2,15 +2,16 @@
 
 import { NetworkGraph } from "@/components/NetworkGraph";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
+import { GraphSkeleton } from "@/components/LoadingSkeleton";
 import { useGraphData } from "@/lib/hooks/useApiData";
-import { Network, Loader2 } from "lucide-react";
+import { Network } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function NetworkPage() {
   const { data: graphData, loading, dataSource } = useGraphData();
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100vh-4rem)] flex flex-col py-2">
       <div className="flex items-center justify-between mb-4">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -34,7 +35,7 @@ export default function NetworkPage() {
           <DataSourceBadge dataSource={dataSource} />
 
           {/* Freshness Legend */}
-          <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 glass px-3 py-1.5 rounded-lg">
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 glass-premium px-3 py-1.5 rounded-lg">
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
               <span>Fresh</span>
@@ -49,28 +50,49 @@ export default function NetworkPage() {
             </div>
           </div>
 
-          <div className="text-xs text-gray-500 glass px-3 py-1.5 rounded-lg">
+          <div className="text-xs text-gray-500 glass-premium px-3 py-1.5 rounded-lg">
             {loading
               ? "Loading..."
               : `${graphData?.nodes.length || 0} nodes \u00b7 ${graphData?.links.length || 0} connections`}
           </div>
         </motion.div>
       </div>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="flex-1 glass rounded-xl overflow-hidden"
-      >
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
-            <span className="ml-2 text-sm text-gray-400">Loading graph...</span>
+
+      {loading ? (
+        <GraphSkeleton />
+      ) : graphData ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="flex-1 glass-premium rounded-xl overflow-hidden relative"
+        >
+          {/* Subtle particle overlay */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 rounded-full bg-indigo-400/20"
+                style={{
+                  left: `${15 + i * 15}%`,
+                  top: `${20 + (i % 3) * 25}%`,
+                }}
+                animate={{
+                  y: [0, -20, 0],
+                  opacity: [0.2, 0.5, 0.2],
+                }}
+                transition={{
+                  duration: 4 + i,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.5,
+                }}
+              />
+            ))}
           </div>
-        ) : graphData ? (
           <NetworkGraph graphData={graphData} />
-        ) : null}
-      </motion.div>
+        </motion.div>
+      ) : null}
     </div>
   );
 }

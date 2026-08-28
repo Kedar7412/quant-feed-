@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, CheckCircle, XCircle, Clock, Target, Loader2 } from "lucide-react";
+import { TrendingUp, CheckCircle, XCircle, Clock, Target } from "lucide-react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { usePredictions } from "@/lib/hooks/useApiData";
+import { PredictionsSkeleton, StatSkeleton } from "@/components/LoadingSkeleton";
 
 const statusFilters = ["all", "active", "correct", "incorrect"] as const;
 
@@ -28,7 +29,7 @@ export default function PredictionsPage() {
       : predictions.filter((p) => p.status === filter);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 py-2">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -45,33 +46,42 @@ export default function PredictionsPage() {
       </motion.div>
 
       {/* Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
-      >
-        <div className="glass rounded-xl p-4">
-          <Target className="h-5 w-5 text-indigo-400 mb-2" />
-          <p className="text-2xl font-bold text-white">{metrics.total}</p>
-          <p className="text-xs text-gray-400">Total Predictions</p>
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatSkeleton />
+          <StatSkeleton />
+          <StatSkeleton />
+          <StatSkeleton />
         </div>
-        <div className="glass rounded-xl p-4">
-          <Clock className="h-5 w-5 text-blue-400 mb-2" />
-          <p className="text-2xl font-bold text-white">{metrics.active}</p>
-          <p className="text-xs text-gray-400">Active</p>
-        </div>
-        <div className="glass rounded-xl p-4">
-          <CheckCircle className="h-5 w-5 text-green-400 mb-2" />
-          <p className="text-2xl font-bold text-white">{metrics.correct}</p>
-          <p className="text-xs text-gray-400">Correct</p>
-        </div>
-        <div className="glass rounded-xl p-4">
-          <TrendingUp className="h-5 w-5 text-green-400 mb-2" />
-          <p className="text-2xl font-bold text-white">{metrics.accuracy}%</p>
-          <p className="text-xs text-gray-400">Accuracy Rate</p>
-        </div>
-      </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
+            <Target className="h-5 w-5 text-indigo-400 mb-2" />
+            <p className="text-2xl font-bold text-white">{metrics.total}</p>
+            <p className="text-xs text-gray-500">Total Predictions</p>
+          </div>
+          <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
+            <Clock className="h-5 w-5 text-blue-400 mb-2" />
+            <p className="text-2xl font-bold text-white">{metrics.active}</p>
+            <p className="text-xs text-gray-500">Active</p>
+          </div>
+          <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
+            <CheckCircle className="h-5 w-5 text-green-400 mb-2" />
+            <p className="text-2xl font-bold text-white">{metrics.correct}</p>
+            <p className="text-xs text-gray-500">Correct</p>
+          </div>
+          <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
+            <TrendingUp className="h-5 w-5 text-green-400 mb-2" />
+            <p className="text-2xl font-bold text-white">{metrics.accuracy}%</p>
+            <p className="text-xs text-gray-500">Accuracy Rate</p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex gap-2">
@@ -81,9 +91,9 @@ export default function PredictionsPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setFilter(status)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               filter === status
-                ? "glass-strong text-indigo-300"
+                ? "glass-premium text-indigo-300 shadow-glow-sm"
                 : "glass text-gray-400 hover:text-gray-200"
             }`}
           >
@@ -93,12 +103,7 @@ export default function PredictionsPage() {
       </div>
 
       {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
-          <span className="ml-2 text-sm text-gray-400">Loading predictions...</span>
-        </div>
-      )}
+      {loading && <PredictionsSkeleton />}
 
       {/* Predictions List */}
       {!loading && (
@@ -114,7 +119,7 @@ export default function PredictionsPage() {
             },
           }}
         >
-          {filteredPredictions.map((prediction) => {
+          {filteredPredictions.map((prediction, predIdx) => {
             const config = statusConfig[prediction.status];
             const StatusIcon = config.icon;
 
@@ -125,7 +130,7 @@ export default function PredictionsPage() {
                   hidden: { opacity: 0, y: 10 },
                   visible: { opacity: 1, y: 0 },
                 }}
-                className="glass rounded-xl p-5"
+                className="glass-premium rounded-xl p-5 hover:shadow-glow-sm transition-all duration-300"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -143,15 +148,15 @@ export default function PredictionsPage() {
                     <h3 className="text-sm font-semibold text-white mb-1">
                       {prediction.title}
                     </h3>
-                    <p className="text-xs text-gray-400">{prediction.description}</p>
+                    <p className="text-xs text-gray-400 leading-relaxed">{prediction.description}</p>
                     {prediction.outcome && (
-                      <p className="text-xs text-gray-300 mt-2 p-2 glass rounded-lg border-l-2 border-indigo-500">
+                      <p className="text-xs text-gray-300 mt-2 p-2.5 glass-premium rounded-lg border-l-2 border-indigo-500">
                         Outcome: {prediction.outcome}
                       </p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    {/* Animated progress ring */}
+                    {/* Animated confidence ring */}
                     <div className="relative w-14 h-14 mx-auto">
                       <svg className="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
                         <circle
@@ -160,23 +165,24 @@ export default function PredictionsPage() {
                           r="24"
                           fill="none"
                           stroke="rgba(255,255,255,0.05)"
-                          strokeWidth="4"
+                          strokeWidth="3"
                         />
-                        <circle
+                        <motion.circle
                           cx="28"
                           cy="28"
                           r="24"
                           fill="none"
-                          stroke="url(#gradient)"
-                          strokeWidth="4"
+                          stroke="url(#confidence-gradient)"
+                          strokeWidth="3"
                           strokeLinecap="round"
-                          strokeDasharray={`${prediction.confidence * 1.508} 150.8`}
-                          className="transition-all duration-1000"
+                          initial={{ strokeDasharray: "0 150.8" }}
+                          animate={{ strokeDasharray: `${prediction.confidence * 1.508} 150.8` }}
+                          transition={{ duration: 1.2, delay: predIdx * 0.1, ease: "easeOut" }}
                         />
                         <defs>
-                          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <linearGradient id="confidence-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stopColor="#6366f1" />
-                            <stop offset="100%" stopColor="#8b5cf6" />
+                            <stop offset="100%" stopColor="#a855f7" />
                           </linearGradient>
                         </defs>
                       </svg>
@@ -187,7 +193,7 @@ export default function PredictionsPage() {
                     <p className="text-[10px] text-gray-500 mt-1">confidence</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/5 text-xs text-gray-500">
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.04] text-xs text-gray-500">
                   <span>
                     Created: {format(new Date(prediction.createdAt), "MMM dd, yyyy")}
                   </span>

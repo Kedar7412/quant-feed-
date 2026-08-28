@@ -1,16 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0f;
+  --background: #06060a;
   --foreground: #e4e4e7;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 @layer utilities {
@@ -28,6 +30,10 @@ body {
     @apply backdrop-blur-2xl bg-white/10 border border-white/20;
   }
 
+  .glass-premium {
+    @apply backdrop-blur-2xl bg-white/[0.07] border border-white/15 shadow-[0_0_30px_rgba(99,102,241,0.05),inset_0_1px_0_rgba(255,255,255,0.05)];
+  }
+
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400;
   }
@@ -35,24 +41,48 @@ body {
   .gradient-text-subtle {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 to-indigo-500;
   }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(99, 102, 241, 0.1);
+  }
+
+  .shimmer-loading {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 25%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .card-hover-glow {
+    position: relative;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .card-hover-glow:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), 0 0 40px rgba(99, 102, 241, 0.05);
+  }
 }
 
-/* Custom scrollbar */
+/* Premium scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: rgba(99, 102, 241, 0.4);
 }
 
 /* Force graph styles */
@@ -69,8 +99,9 @@ body {
   background:
     radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
-  animation: meshFloat 20s ease-in-out infinite;
+    radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(168, 85, 247, 0.04) 0%, transparent 40%);
+  animation: meshFloat 30s ease-in-out infinite;
 }
 
 @keyframes meshFloat {
@@ -78,19 +109,29 @@ body {
     background:
       radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
       radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+      radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(168, 85, 247, 0.04) 0%, transparent 40%);
   }
-  33% {
+  25% {
     background:
-      radial-gradient(ellipse at 30% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 40% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+      radial-gradient(ellipse at 30% 30%, rgba(99, 102, 241, 0.09) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 40% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 40%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
   }
-  66% {
+  50% {
     background:
       radial-gradient(ellipse at 60% 40%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
       radial-gradient(ellipse at 30% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 70% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+      radial-gradient(ellipse at 70% 30%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(168, 85, 247, 0.04) 0%, transparent 40%);
+  }
+  75% {
+    background:
+      radial-gradient(ellipse at 40% 60%, rgba(99, 102, 241, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 30%, rgba(139, 92, 246, 0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 30% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
   }
 }
 
@@ -106,4 +147,30 @@ body {
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Noise texture overlay */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* Border glow animation */
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+}
+
+.animate-border-glow {
+  animation: borderGlow 3s ease-in-out infinite;
 }
