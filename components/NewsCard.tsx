@@ -19,7 +19,7 @@ const categoryBorderColors: Record<string, string> = {
 
 const categoryGradients: Record<string, string> = {
   domestic: "from-green-500 to-emerald-600",
-  international: "from-blue-500 to-indigo-600",
+  international: "from-blue-500 to-sky-600",
   economic: "from-amber-500 to-orange-600",
   political: "from-red-500 to-rose-600",
 };
@@ -63,16 +63,16 @@ export function NewsCard({ article }: NewsCardProps) {
     <motion.div
       whileHover={{ y: -2, scale: 1.002 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className={`glass-premium rounded-xl p-4 border-l-[3px] ${
-        categoryBorderColors[article.category] || "border-l-indigo-500"
-      } hover:bg-white/[0.08] transition-all duration-300 card-hover-glow`}
+      className={`card-premium p-4 border-l-[3px] ${
+        categoryBorderColors[article.category] || "border-l-lime"
+      } hover:border-l-lime transition-all duration-300 card-hover-glow`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <span
               className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
-                categoryTagBg[article.category] || "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                categoryTagBg[article.category] || "bg-lime/10 text-lime border-lime/20"
               }`}
             >
               {article.category}
@@ -108,7 +108,7 @@ export function NewsCard({ article }: NewsCardProps) {
             </div>
             <button
               onClick={() => setExpanded(!expanded)}
-              className="flex items-center gap-0.5 text-indigo-400 hover:text-indigo-300 transition-colors"
+              className="flex items-center gap-0.5 text-lime hover:text-lime-soft transition-colors"
             >
               {expanded ? (
                 <>
@@ -125,9 +125,9 @@ export function NewsCard({ article }: NewsCardProps) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <div className="flex items-center gap-1 glass-premium px-2 py-1 rounded-lg">
-            <TrendingUp className="h-3 w-3 text-indigo-400" />
-            <span className="text-xs font-medium text-indigo-400">
+          <div className="flex items-center gap-1 bg-lime/10 border border-lime/20 px-2 py-1 rounded-lg">
+            <TrendingUp className="h-3 w-3 text-lime" />
+            <span className="text-xs font-medium text-lime">
               {article.economicImpactScore}/10
             </span>
           </div>
@@ -140,7 +140,7 @@ export function NewsCard({ article }: NewsCardProps) {
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 hover:text-indigo-400 transition-colors p-1 rounded-md hover:bg-white/5"
+            className="text-gray-500 hover:text-lime transition-colors p-1 rounded-md hover:bg-white/5"
           >
             <ExternalLink className="h-3.5 w-3.5" />
           </a>

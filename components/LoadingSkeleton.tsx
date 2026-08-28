@@ -47,7 +47,7 @@ export function GraphSkeleton() {
           ].map((node, i) => (
             <motion.div
               key={i}
-              className="absolute w-3 h-3 rounded-full bg-indigo-500/30"
+              className="absolute w-3 h-3 rounded-full bg-lime/30"
               style={{ left: node.x, top: node.y }}
               animate={{
                 scale: [1, 1.5, 1],
@@ -63,12 +63,12 @@ export function GraphSkeleton() {
           ))}
           {/* Connection lines */}
           <svg className="absolute inset-0 w-full h-full opacity-20">
-            <line x1="50%" y1="30%" x2="25%" y2="55%" stroke="#6366f1" strokeWidth="1" />
-            <line x1="50%" y1="30%" x2="75%" y2="50%" stroke="#6366f1" strokeWidth="1" />
-            <line x1="25%" y1="55%" x2="40%" y2="75%" stroke="#6366f1" strokeWidth="1" />
-            <line x1="75%" y1="50%" x2="80%" y2="70%" stroke="#6366f1" strokeWidth="1" />
-            <line x1="65%" y1="20%" x2="50%" y2="30%" stroke="#6366f1" strokeWidth="1" />
-            <line x1="30%" y1="35%" x2="25%" y2="55%" stroke="#6366f1" strokeWidth="1" />
+            <line x1="50%" y1="30%" x2="25%" y2="55%" stroke="#a3e635" strokeWidth="1" />
+            <line x1="50%" y1="30%" x2="75%" y2="50%" stroke="#a3e635" strokeWidth="1" />
+            <line x1="25%" y1="55%" x2="40%" y2="75%" stroke="#a3e635" strokeWidth="1" />
+            <line x1="75%" y1="50%" x2="80%" y2="70%" stroke="#a3e635" strokeWidth="1" />
+            <line x1="65%" y1="20%" x2="50%" y2="30%" stroke="#a3e635" strokeWidth="1" />
+            <line x1="30%" y1="35%" x2="25%" y2="55%" stroke="#a3e635" strokeWidth="1" />
           </svg>
         </div>
       </div>

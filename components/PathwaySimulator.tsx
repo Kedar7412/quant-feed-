@@ -89,7 +89,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
                   }`}
                 >
                   {isActive ? (
-                    <ToggleRight className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <ToggleRight className="h-4 w-4 text-lime shrink-0 mt-0.5" />
                   ) : (
                     <ToggleLeft className="h-4 w-4 text-gray-500 shrink-0 mt-0.5" />
                   )}
@@ -110,7 +110,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex items-center gap-2 text-xs text-indigo-400"
+            className="flex items-center gap-2 text-xs text-lime"
           >
             <Loader2 className="h-3 w-3 animate-spin" />
             <span>Running simulation...</span>
@@ -127,7 +127,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
               onClick={() => setSelectedPathway(pathway)}
               className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                 selectedPathway?.id === pathway.id
-                  ? "glass-strong text-indigo-300"
+                  ? "bg-lime/15 border border-lime/40 text-lime"
                   : "glass text-gray-400 hover:text-gray-200"
               }`}
             >
@@ -191,7 +191,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
                       ? "from-green-500 to-emerald-400"
                       : step.level === "meso"
                       ? "from-amber-500 to-orange-400"
-                      : "from-blue-500 to-indigo-400";
+                      : "from-sky-500 to-blue-400";
 
                   return (
                     <motion.div
@@ -237,7 +237,7 @@ export function PathwaySimulator({ pathways, articles }: PathwaySimulatorProps) 
                             animate={{ opacity: [0.3, 1, 0.3] }}
                             transition={{ duration: 1.5, repeat: Infinity }}
                           >
-                            <ArrowRight className="h-3 w-3 text-indigo-500 rotate-90" />
+                            <ArrowRight className="h-3 w-3 text-lime rotate-90" />
                           </motion.div>
                         </div>
                       )}
