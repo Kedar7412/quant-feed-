@@ -3,7 +3,50 @@ import { getArticles, saveArticles, searchArticles, getArticlesByDate, getLastFe
 import { fetchLiveNews } from "@/lib/news/fetcher";
 import { mockArticles } from "@/lib/mock-data";
 import { computeFreshnessScore, computeRelevanceScore } from "@/lib/freshness/recency-scorer";
+import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
 import { NewsArticle } from "@/lib/types";
+
+/**
+ * Build a map from articleId -> its cluster's changeVelocity so relevance
+ * scoring can use the real topic velocity from the correlation engine instead
+ * of a tag-count proxy. Articles not in any cluster get velocity 0.
+ */
+function buildVelocityMap(articles: NewsArticle[]): Map<string, number> {
+  const velocityMap = new Map<string, number>();
+  const correlations = buildTopicCorrelations(articles);
+  for (const correlation of correlations) {
+    for (const id of correlation.articleIds) {
+      // Keep the highest velocity if an article maps to multiple clusters
+      const existing = velocityMap.get(id) ?? 0;
+      velocityMap.set(id, Math.max(existing, correlation.changeVelocity));
+    }
+  }
+  return velocityMap;
+}
+
+/**
+ * Score a set of articles: freshness, relevance (using real per-article topic
+ * velocity from the correlation engine), and provenance. Each article keeps its
+ * own `isLiveData` flag if it already carries one; otherwise it falls back to
+ * whether this request performed a live fetch.
+ */
+function scoreArticles(
+  articles: NewsArticle[],
+  liveThisRequest: boolean
+): NewsArticle[] {
+  const velocityMap = buildVelocityMap(articles);
+  return articles.map((article) => ({
+    ...article,
+    freshnessScore: computeFreshnessScore(article.publishedAt),
+    relevanceScore: computeRelevanceScore(
+      article,
+      velocityMap.get(article.id) ?? 0
+    ),
+    // Preserve an already-set provenance flag; only fall back to the
+    // request-level live status when the article doesn't declare one.
+    isLiveData: article.isLiveData ?? liveThisRequest,
+  }));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -55,24 +98,21 @@ export async function GET(request: Request) {
       dataSource = "sample";
     }
 
+    // Whether a live fetch actually populated results this request. Store hits
+    // returned from search/date filters are cached, not live, so they must not
+    // inherit a live flag they didn't earn.
+    const liveThisRequest = dataSource === "live";
+
     // Compute freshness and relevance scores for all articles
-    articles = articles.map((article) => ({
-      ...article,
-      freshnessScore: computeFreshnessScore(article.publishedAt),
-      relevanceScore: computeRelevanceScore(article),
-      isLiveData: dataSource === "live",
-    }));
+    articles = scoreArticles(articles, liveThisRequest);
 
     // Apply filters
     if (search) {
       const searchResults = searchArticles(search);
       if (searchResults.length > 0) {
-        articles = searchResults.map((a) => ({
-          ...a,
-          freshnessScore: computeFreshnessScore(a.publishedAt),
-          relevanceScore: computeRelevanceScore(a),
-          isLiveData: dataSource === "live",
-        }));
+        // Store-backed search hits are cached unless they already carry a live
+        // flag; do not relabel them based on this request's outer dataSource.
+        articles = scoreArticles(searchResults, false);
       } else {
         // Fallback search on current articles array
         const lowerSearch = search.toLowerCase();
@@ -88,12 +128,8 @@ export async function GET(request: Request) {
     if (date) {
       const dateArticles = getArticlesByDate(date);
       if (dateArticles.length > 0) {
-        articles = dateArticles.map((a) => ({
-          ...a,
-          freshnessScore: computeFreshnessScore(a.publishedAt),
-          relevanceScore: computeRelevanceScore(a),
-          isLiveData: dataSource === "live",
-        }));
+        // Store-backed date hits are cached unless already flagged live.
+        articles = scoreArticles(dateArticles, false);
       } else {
         articles = articles.filter((a) => a.publishedAt.startsWith(date));
       }
@@ -141,12 +177,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error in /api/news:", error);
     // Graceful fallback to mock data with scores
-    const scored = mockArticles.map((a) => ({
-      ...a,
-      freshnessScore: computeFreshnessScore(a.publishedAt),
-      relevanceScore: computeRelevanceScore(a),
-      isLiveData: false,
-    }));
+    const scored = scoreArticles(mockArticles, false);
     return NextResponse.json({
       articles: scored,
       dataSource: "sample" as const,

@@ -85,10 +85,42 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // Pulse animation loop
+  // Per-frame loop: pulse fresh-node rings and toggle label visibility based on
+  // camera distance to each node. Runs against the live scene/camera so the
+  // rings actually animate and labels only appear when zoomed in (< ~150 units).
+  const LABEL_VISIBLE_DISTANCE = 150;
   useEffect(() => {
     const animate = () => {
       pulsePhaseRef.current += 0.03;
+      const phase = pulsePhaseRef.current;
+
+      const graph = graphRef.current;
+      if (graph) {
+        const scene = graph.scene?.();
+        const camera = graph.camera?.();
+        if (scene && camera) {
+          // Pulse factor oscillates between ~0.85 and ~1.15
+          const pulseScale = 1 + Math.sin(phase) * 0.15;
+          const pulseOpacity = 0.35 + (Math.sin(phase) + 1) * 0.2; // 0.35 - 0.75
+
+          scene.traverse((obj: any) => {
+            if (obj.name === "pulseRing") {
+              obj.scale.set(pulseScale, pulseScale, pulseScale);
+              if (obj.material) {
+                obj.material.opacity = pulseOpacity;
+              }
+            } else if (obj.name === "textLabel") {
+              // Distance-based label visibility (LOD): show only when the
+              // camera is close enough to the node.
+              const worldPos = new THREE.Vector3();
+              obj.getWorldPosition(worldPos);
+              const dist = camera.position.distanceTo(worldPos);
+              obj.visible = dist < LABEL_VISIBLE_DISTANCE;
+            }
+          });
+        }
+      }
+
       animationFrameRef.current = requestAnimationFrame(animate);
     };
     animationFrameRef.current = requestAnimationFrame(animate);
@@ -446,7 +478,9 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
           sprite.scale.set(size * 5, size * 0.7, 1);
           sprite.position.set(0, -(size + 4), 0);
           sprite.name = "textLabel";
-          // Start visible - ForceGraph3D manages LOD internally
+          // Start hidden; the per-frame loop reveals labels only when the
+          // camera is within LABEL_VISIBLE_DISTANCE of the node (LOD).
+          sprite.visible = false;
           group.add(sprite);
         }
       }

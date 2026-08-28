@@ -444,7 +444,8 @@ export const mockPredictions: Prediction[] = [
     createdAt: "2024-11-01T00:00:00Z",
     targetDate: "2025-03-31T00:00:00Z",
     confidence: 72,
-    status: "active",
+    // Target date has passed with no recorded outcome: honestly reflected as expired
+    status: "expired",
     category: "economic",
   },
   {
@@ -454,7 +455,7 @@ export const mockPredictions: Prediction[] = [
     createdAt: "2024-11-15T00:00:00Z",
     targetDate: "2025-04-30T00:00:00Z",
     confidence: 60,
-    status: "active",
+    status: "expired",
     category: "economic",
   },
   {
@@ -464,7 +465,7 @@ export const mockPredictions: Prediction[] = [
     createdAt: "2024-10-01T00:00:00Z",
     targetDate: "2025-06-30T00:00:00Z",
     confidence: 55,
-    status: "active",
+    status: "expired",
     category: "economic",
   },
   {
@@ -474,7 +475,7 @@ export const mockPredictions: Prediction[] = [
     createdAt: "2024-09-01T00:00:00Z",
     targetDate: "2025-03-31T00:00:00Z",
     confidence: 68,
-    status: "active",
+    status: "expired",
     category: "domestic",
   },
   {
@@ -512,13 +513,32 @@ export const mockPredictions: Prediction[] = [
   },
 ];
 
-function todayStr(): string {
-  return new Date().toISOString().split("T")[0];
+/**
+ * Apply expiry logic to predictions.
+ * Any prediction still marked "active" whose targetDate has passed (relative to
+ * `now`) is downgraded to "expired". Predictions already resolved (correct /
+ * incorrect) or explicitly expired are left untouched. This keeps the
+ * predictions surface honest so a stale forecast never reads as a live bet.
+ */
+export function applyPredictionExpiry(
+  predictions: Prediction[],
+  now: number = Date.now()
+): Prediction[] {
+  return predictions.map((p) => {
+    if (p.status === "active" && new Date(p.targetDate).getTime() < now) {
+      return { ...p, status: "expired" as const };
+    }
+    return p;
+  });
 }
 
+// Pinned to a fixed historical date so sample analysis never masquerades as
+// today's fresh data. Matches the fixed Dec 2024 dates used by mockArticles.
+const MOCK_SUMMARY_DATE = "2024-12-15";
+
 export const mockDailySummary: DailySummary = {
-  id: `summary-${todayStr()}`,
-  date: todayStr(),
+  id: `summary-${MOCK_SUMMARY_DATE}`,
+  date: MOCK_SUMMARY_DATE,
   headline: "Markets Consolidate at Highs as RBI Holds Rates; Global Easing Cycle Supports Risk Appetite",
   keyTakeaways: [
     "RBI maintained status quo on rates for 8th meeting, signaling data-dependent approach to future cuts",

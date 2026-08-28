@@ -15,6 +15,7 @@ import {
   mockDailySummary,
   mockPathways,
   mockPredictions,
+  applyPredictionExpiry,
 } from "@/lib/mock-data";
 
 interface PaginationInfo {
@@ -33,15 +34,18 @@ interface NewsResponse {
 interface AnalysisResponse {
   summary: DailySummary;
   pathways: Pathway[];
+  dataSource: "live" | "cached" | "sample";
 }
 
 interface PredictionsResponse {
   predictions: Prediction[];
+  dataSource: "live" | "cached" | "sample";
   metrics: {
     total: number;
     active: number;
     correct: number;
     incorrect: number;
+    expired: number;
     accuracy: number;
   };
 }
@@ -178,6 +182,7 @@ export function useAnalysis() {
       setData({
         summary: mockDailySummary,
         pathways: mockPathways,
+        dataSource: "sample",
       });
     } finally {
       setLoading(false);
@@ -211,14 +216,16 @@ export function usePredictions() {
     } catch (err) {
       console.error("Failed to fetch predictions:", err);
       setError(String(err));
+      const fallback = applyPredictionExpiry(mockPredictions);
       setData({
-        predictions: mockPredictions,
+        predictions: fallback,
+        dataSource: "sample",
         metrics: {
-          total: mockPredictions.length,
-          active: mockPredictions.filter((p) => p.status === "active").length,
-          correct: mockPredictions.filter((p) => p.status === "correct").length,
-          incorrect: mockPredictions.filter((p) => p.status === "incorrect")
-            .length,
+          total: fallback.length,
+          active: fallback.filter((p) => p.status === "active").length,
+          correct: fallback.filter((p) => p.status === "correct").length,
+          incorrect: fallback.filter((p) => p.status === "incorrect").length,
+          expired: fallback.filter((p) => p.status === "expired").length,
           accuracy: 67,
         },
       });

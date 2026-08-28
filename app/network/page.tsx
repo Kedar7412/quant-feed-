@@ -2,6 +2,7 @@
 
 import { NetworkGraph } from "@/components/NetworkGraph";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
+import { TopicCorrelationsPanel } from "@/components/TopicCorrelationsPanel";
 import { GraphSkeleton } from "@/components/LoadingSkeleton";
 import { useGraphData } from "@/lib/hooks/useApiData";
 import { Network } from "lucide-react";
@@ -9,6 +10,7 @@ import { motion } from "framer-motion";
 
 export default function NetworkPage() {
   const { data: graphData, loading, dataSource } = useGraphData();
+  const correlations = graphData?.correlations || [];
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col py-2">
@@ -61,37 +63,46 @@ export default function NetworkPage() {
       {loading ? (
         <GraphSkeleton />
       ) : graphData ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="flex-1 glass-premium rounded-xl overflow-hidden relative"
-        >
-          {/* Subtle particle overlay */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1 h-1 rounded-full bg-indigo-400/20"
-                style={{
-                  left: `${15 + i * 15}%`,
-                  top: `${20 + (i % 3) * 25}%`,
-                }}
-                animate={{
-                  y: [0, -20, 0],
-                  opacity: [0.2, 0.5, 0.2],
-                }}
-                transition={{
-                  duration: 4 + i,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: i * 0.5,
-                }}
-              />
-            ))}
-          </div>
-          <NetworkGraph graphData={graphData} />
-        </motion.div>
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="flex-1 glass-premium rounded-xl overflow-hidden relative min-h-[400px]"
+          >
+            {/* Subtle particle overlay */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 rounded-full bg-indigo-400/20"
+                  style={{
+                    left: `${15 + i * 15}%`,
+                    top: `${20 + (i % 3) * 25}%`,
+                  }}
+                  animate={{
+                    y: [0, -20, 0],
+                    opacity: [0.2, 0.5, 0.2],
+                  }}
+                  transition={{
+                    duration: 4 + i,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.5,
+                  }}
+                />
+              ))}
+            </div>
+            <NetworkGraph graphData={graphData} />
+          </motion.div>
+
+          {/* Trending threads / topic correlations side panel */}
+          {correlations.length > 0 && (
+            <div className="lg:w-80 shrink-0 lg:overflow-y-auto">
+              <TopicCorrelationsPanel correlations={correlations} />
+            </div>
+          )}
+        </div>
       ) : null}
     </div>
   );

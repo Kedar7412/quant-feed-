@@ -28,8 +28,13 @@ export function computeFreshnessScore(publishedAt: string): number {
  * Factors:
  *  - Freshness (weight 0.5): exponential decay based on publish time
  *  - Economic impact (weight 0.3): economicImpactScore / 10
- *  - Topic velocity bonus (weight 0.2): based on tag count as proxy for topic activity
- *    (articles with more tags tend to be on active, multi-faceted topics)
+ *  - Topic velocity bonus (weight 0.2): the real change velocity of the topic
+ *    cluster this article belongs to, computed by the topic tracker
+ *    (buildTopicCorrelations). Articles on fast-moving threads rank higher.
+ *
+ * `topicVelocity` should be the 0-1 changeVelocity of the article's cluster.
+ * When it is omitted (no correlation data available), the velocity term falls
+ * back to a coarse tag-count proxy so ranking still degrades gracefully.
  */
 export function computeRelevanceScore(
   article: NewsArticle,
@@ -37,7 +42,10 @@ export function computeRelevanceScore(
 ): number {
   const freshness = computeFreshnessScore(article.publishedAt);
   const impact = (article.economicImpactScore || 5) / 10;
-  const velocity = topicVelocity ?? Math.min(1, (article.tags?.length || 0) / 6);
+  const velocity =
+    topicVelocity !== undefined
+      ? Math.max(0, Math.min(1, topicVelocity))
+      : Math.min(1, (article.tags?.length || 0) / 6);
 
   const score = freshness * 0.5 + impact * 0.3 + velocity * 0.2;
   return Math.max(0, Math.min(1, parseFloat(score.toFixed(4))));

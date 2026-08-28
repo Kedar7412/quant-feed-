@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { TrendingUp, CheckCircle, XCircle, Clock, Target } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { usePredictions } from "@/lib/hooks/useApiData";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { PredictionsSkeleton, StatSkeleton } from "@/components/LoadingSkeleton";
 
-const statusFilters = ["all", "active", "correct", "incorrect"] as const;
+const statusFilters = ["all", "active", "correct", "incorrect", "expired"] as const;
 
 const statusConfig = {
   active: { icon: Clock, color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20" },
@@ -21,7 +22,15 @@ export default function PredictionsPage() {
   const { data, loading } = usePredictions();
 
   const predictions = data?.predictions || [];
-  const metrics = data?.metrics || { total: 0, active: 0, correct: 0, incorrect: 0, accuracy: 0 };
+  const metrics = data?.metrics || {
+    total: 0,
+    active: 0,
+    correct: 0,
+    incorrect: 0,
+    expired: 0,
+    accuracy: 0,
+  };
+  const dataSource = data?.dataSource || "sample";
 
   const filteredPredictions =
     filter === "all"
@@ -35,19 +44,24 @@ export default function PredictionsPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex items-start justify-between gap-4"
       >
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-indigo-400" />
-          Predictions
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Historical and active predictions with confidence scores and accuracy tracking
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <TrendingUp className="h-6 w-6 text-indigo-400" />
+            Predictions
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Historical and active predictions with confidence scores and accuracy tracking
+          </p>
+        </div>
+        {!loading && <DataSourceBadge dataSource={dataSource} />}
       </motion.div>
 
       {/* Stats */}
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <StatSkeleton />
           <StatSkeleton />
           <StatSkeleton />
           <StatSkeleton />
@@ -58,7 +72,7 @@ export default function PredictionsPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="grid grid-cols-2 md:grid-cols-5 gap-4"
         >
           <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
             <Target className="h-5 w-5 text-indigo-400 mb-2" />
@@ -74,6 +88,11 @@ export default function PredictionsPage() {
             <CheckCircle className="h-5 w-5 text-green-400 mb-2" />
             <p className="text-2xl font-bold text-white">{metrics.correct}</p>
             <p className="text-xs text-gray-500">Correct</p>
+          </div>
+          <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
+            <Clock className="h-5 w-5 text-gray-400 mb-2" />
+            <p className="text-2xl font-bold text-white">{metrics.expired}</p>
+            <p className="text-xs text-gray-500">Expired</p>
           </div>
           <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
             <TrendingUp className="h-5 w-5 text-green-400 mb-2" />
@@ -123,6 +142,20 @@ export default function PredictionsPage() {
             const config = statusConfig[prediction.status];
             const StatusIcon = config.icon;
 
+            // Recency / freshness of the prediction itself, and whether its
+            // target window is still open. Active predictions past their target
+            // are handled server-side (marked expired), but we still surface a
+            // clear "days until / overdue" recency signal per card.
+            const now = Date.now();
+            const targetMs = new Date(prediction.targetDate).getTime();
+            const isFuture = targetMs >= now;
+            const targetRelative = formatDistanceToNow(new Date(prediction.targetDate), {
+              addSuffix: true,
+            });
+            const createdRelative = formatDistanceToNow(new Date(prediction.createdAt), {
+              addSuffix: true,
+            });
+
             return (
               <motion.div
                 key={prediction.id}
@@ -143,6 +176,17 @@ export default function PredictionsPage() {
                       </span>
                       <span className="text-xs text-gray-500 capitalize">
                         {prediction.category}
+                      </span>
+                      {/* Recency indicator: how the target window relates to now */}
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                          prediction.status === "active" && isFuture
+                            ? "text-emerald-300 border-emerald-400/20 bg-emerald-400/10"
+                            : "text-gray-400 border-gray-500/20 bg-gray-500/10"
+                        }`}
+                      >
+                        <Clock className="h-2.5 w-2.5" />
+                        {isFuture ? `Target ${targetRelative}` : `Window closed ${targetRelative}`}
                       </span>
                     </div>
                     <h3 className="text-sm font-semibold text-white mb-1">
@@ -194,10 +238,10 @@ export default function PredictionsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/[0.04] text-xs text-gray-500">
-                  <span>
+                  <span title={createdRelative}>
                     Created: {format(new Date(prediction.createdAt), "MMM dd, yyyy")}
                   </span>
-                  <span>
+                  <span title={targetRelative}>
                     Target: {format(new Date(prediction.targetDate), "MMM dd, yyyy")}
                   </span>
                 </div>

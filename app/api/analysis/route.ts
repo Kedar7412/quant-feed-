@@ -9,9 +9,13 @@ export async function GET() {
     let summary = getLatestSummary();
     let pathways = getPathways();
 
+    // Track whether the summary is real (from the store) or sample data.
+    let dataSource: "live" | "sample" = "live";
+
     // Fall back to mock data if store is empty
     if (!summary) {
       summary = mockDailySummary;
+      dataSource = "sample";
     }
 
     if (pathways.length === 0) {
@@ -21,6 +25,7 @@ export async function GET() {
     return NextResponse.json({
       summary,
       pathways,
+      dataSource,
     });
   } catch (error) {
     console.error("Error in /api/analysis:", error);
@@ -28,6 +33,7 @@ export async function GET() {
     return NextResponse.json({
       summary: mockDailySummary,
       pathways: mockPathways,
+      dataSource: "sample" as const,
     });
   }
 }
