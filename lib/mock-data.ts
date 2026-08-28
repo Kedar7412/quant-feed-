@@ -8,18 +8,6 @@ import {
   DailySummary,
 } from "./types";
 
-// Helper to generate relative dates (today minus N days)
-function daysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  date.setHours(9 + Math.floor(Math.random() * 8), Math.floor(Math.random() * 60), 0, 0);
-  return date.toISOString();
-}
-
-function todayStr(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 export const mockArticles: NewsArticle[] = [
   {
     id: "art-1",
@@ -28,11 +16,12 @@ export const mockArticles: NewsArticle[] = [
       "The Reserve Bank of India maintained its benchmark lending rate at 6.5% for the eighth consecutive meeting, citing persistent food inflation risks while keeping growth outlook positive at 7% for FY25.",
     source: "Economic Times",
     url: "https://economictimes.com/rbi-policy",
-    publishedAt: daysAgo(0),
+    publishedAt: "2024-12-15T09:30:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 9,
     tags: ["RBI", "monetary policy", "repo rate", "inflation"],
+    isLiveData: false,
   },
   {
     id: "art-2",
@@ -41,11 +30,12 @@ export const mockArticles: NewsArticle[] = [
       "Indian stock markets reached new highs as foreign institutional investors poured Rs 15,000 crore in December, driven by expectations of rate cuts in 2025 and robust corporate earnings.",
     source: "Mint",
     url: "https://livemint.com/markets",
-    publishedAt: daysAgo(0),
+    publishedAt: "2024-12-15T11:45:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 8,
     tags: ["stock market", "FII", "Sensex", "investment"],
+    isLiveData: false,
   },
   {
     id: "art-3",
@@ -54,11 +44,12 @@ export const mockArticles: NewsArticle[] = [
       "The Federal Reserve indicated potential rate reductions totaling 75 basis points next year, boosting global market sentiment and strengthening emerging market currencies including the Indian rupee.",
     source: "Reuters",
     url: "https://reuters.com/fed-policy",
-    publishedAt: daysAgo(1),
+    publishedAt: "2024-12-14T14:20:00Z",
     category: "international",
     subcategory: "International",
     economicImpactScore: 9,
     tags: ["US Fed", "rate cuts", "global markets", "rupee"],
+    isLiveData: false,
   },
   {
     id: "art-4",
@@ -67,11 +58,12 @@ export const mockArticles: NewsArticle[] = [
       "Government estimates show robust economic expansion driven by manufacturing recovery and services sector growth, though agricultural output remains a concern due to uneven monsoon distribution.",
     source: "Business Standard",
     url: "https://business-standard.com/gdp",
-    publishedAt: daysAgo(1),
+    publishedAt: "2024-12-14T10:15:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 9,
     tags: ["GDP", "economic growth", "manufacturing", "services"],
+    isLiveData: false,
   },
   {
     id: "art-5",
@@ -80,11 +72,12 @@ export const mockArticles: NewsArticle[] = [
       "The state legislature approved the Mumbai-Nagpur industrial corridor development bill, allocating Rs 50,000 crore for infrastructure development expected to create 2 million jobs over 5 years.",
     source: "Indian Express",
     url: "https://indianexpress.com/maharashtra",
-    publishedAt: daysAgo(1),
+    publishedAt: "2024-12-14T16:30:00Z",
     category: "political",
     subcategory: "Indian Local",
     economicImpactScore: 7,
     tags: ["infrastructure", "Maharashtra", "industrial corridor", "jobs"],
+    isLiveData: false,
   },
   {
     id: "art-6",
@@ -93,11 +86,12 @@ export const mockArticles: NewsArticle[] = [
       "Oil-producing nations agreed to maintain current output restrictions, keeping Brent crude above $80/barrel. India, as the world's third-largest oil importer, faces continued pressure on current account deficit.",
     source: "Bloomberg",
     url: "https://bloomberg.com/opec",
-    publishedAt: daysAgo(1),
+    publishedAt: "2024-12-14T08:00:00Z",
     category: "international",
     subcategory: "International",
     economicImpactScore: 8,
     tags: ["OPEC", "oil prices", "crude oil", "current account"],
+    isLiveData: false,
   },
   {
     id: "art-7",
@@ -106,11 +100,12 @@ export const mockArticles: NewsArticle[] = [
       "Tata Motors reported record electric vehicle sales of 8,500 units in November, capturing 62% market share in the Indian EV segment. The company announced plans for 3 new EV models in 2025.",
     source: "Autocar India",
     url: "https://autocarindia.com/tata-ev",
-    publishedAt: daysAgo(2),
+    publishedAt: "2024-12-13T12:00:00Z",
     category: "domestic",
     subcategory: "Indian National",
     economicImpactScore: 6,
     tags: ["EV", "Tata Motors", "automobile", "green energy"],
+    isLiveData: false,
   },
   {
     id: "art-8",
@@ -119,11 +114,12 @@ export const mockArticles: NewsArticle[] = [
       "China's manufacturing PMI fell to 48.2, signaling continued contraction. Indian manufacturers report increased orders as global companies diversify supply chains, benefiting sectors like electronics and pharmaceuticals.",
     source: "Financial Times",
     url: "https://ft.com/china-slowdown",
-    publishedAt: daysAgo(2),
+    publishedAt: "2024-12-13T09:30:00Z",
     category: "international",
     subcategory: "International",
     economicImpactScore: 8,
     tags: ["China", "supply chain", "manufacturing", "India opportunity"],
+    isLiveData: false,
   },
   {
     id: "art-9",
@@ -132,11 +128,12 @@ export const mockArticles: NewsArticle[] = [
       "Bengaluru's technology sector showed strong hiring momentum with major companies including Infosys, Wipro, and startups expanding headcount, driven by AI and cloud computing demand.",
     source: "Deccan Herald",
     url: "https://deccanherald.com/karnataka-it",
-    publishedAt: daysAgo(2),
+    publishedAt: "2024-12-13T15:45:00Z",
     category: "domestic",
     subcategory: "Indian Local",
     economicImpactScore: 7,
     tags: ["IT sector", "employment", "Karnataka", "technology"],
+    isLiveData: false,
   },
   {
     id: "art-10",
@@ -145,11 +142,12 @@ export const mockArticles: NewsArticle[] = [
       "India signed implementation protocols for the IMEC trade corridor with UAE and Saudi Arabia, expected to reduce trade transit times by 40% and boost bilateral trade by $20 billion annually.",
     source: "The Hindu",
     url: "https://thehindu.com/imec",
-    publishedAt: daysAgo(2),
+    publishedAt: "2024-12-13T11:20:00Z",
     category: "political",
     subcategory: "International",
     economicImpactScore: 8,
     tags: ["IMEC", "trade corridor", "infrastructure", "geopolitics"],
+    isLiveData: false,
   },
   {
     id: "art-11",
@@ -158,11 +156,12 @@ export const mockArticles: NewsArticle[] = [
       "The Indian rupee appreciated against the US dollar supported by strong foreign investment inflows and positive trade balance data, with RBI intervention keeping volatility in check.",
     source: "NDTV Profit",
     url: "https://ndtv.com/rupee",
-    publishedAt: daysAgo(2),
+    publishedAt: "2024-12-13T10:00:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 7,
     tags: ["rupee", "forex", "FII", "trade balance"],
+    isLiveData: false,
   },
   {
     id: "art-12",
@@ -171,11 +170,12 @@ export const mockArticles: NewsArticle[] = [
       "India's first commercial green hydrogen plant began operations in Kutch, Gujarat with 50MW capacity. The facility is part of the National Green Hydrogen Mission targeting 5 MT annual production by 2030.",
     source: "Times of India",
     url: "https://timesofindia.com/green-hydrogen",
-    publishedAt: daysAgo(2),
+    publishedAt: "2024-12-13T14:30:00Z",
     category: "domestic",
     subcategory: "Indian Local",
     economicImpactScore: 7,
     tags: ["green hydrogen", "renewable energy", "Gujarat", "energy transition"],
+    isLiveData: false,
   },
   {
     id: "art-13",
@@ -184,11 +184,12 @@ export const mockArticles: NewsArticle[] = [
       "Consumer food price index jumped due to unseasonal rains damaging vegetable crops, particularly tomatoes and onions. Government considering import duty reductions to stabilize prices.",
     source: "Business Today",
     url: "https://businesstoday.com/inflation",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T09:00:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 8,
     tags: ["inflation", "food prices", "agriculture", "consumer prices"],
+    isLiveData: false,
   },
   {
     id: "art-14",
@@ -197,11 +198,12 @@ export const mockArticles: NewsArticle[] = [
       "ECB reduced its deposit facility rate to 3.75% amid slowing Eurozone growth. The move aligns with global easing expectations and supports risk appetite for emerging market assets.",
     source: "Reuters",
     url: "https://reuters.com/ecb-rate",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T13:45:00Z",
     category: "international",
     subcategory: "International",
     economicImpactScore: 7,
     tags: ["ECB", "rate cut", "Eurozone", "global liquidity"],
+    isLiveData: false,
   },
   {
     id: "art-15",
@@ -210,11 +212,12 @@ export const mockArticles: NewsArticle[] = [
       "India's Unified Payments Interface processed over 15 billion transactions in November worth Rs 18 lakh crore, demonstrating the deepening of digital payments penetration across tier-2 and tier-3 cities.",
     source: "Mint",
     url: "https://livemint.com/upi-record",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T11:30:00Z",
     category: "domestic",
     subcategory: "Indian National",
     economicImpactScore: 6,
     tags: ["UPI", "digital payments", "fintech", "financial inclusion"],
+    isLiveData: false,
   },
   {
     id: "art-16",
@@ -223,11 +226,12 @@ export const mockArticles: NewsArticle[] = [
       "The Ministry of Environment approved the Foxconn-HCL semiconductor fabrication unit near Chennai, a Rs 91,000 crore investment expected to position India in the global chip supply chain.",
     source: "The Hindu",
     url: "https://thehindu.com/semiconductor",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T16:00:00Z",
     category: "political",
     subcategory: "Indian Local",
     economicImpactScore: 9,
     tags: ["semiconductor", "manufacturing", "Tamil Nadu", "supply chain"],
+    isLiveData: false,
   },
   {
     id: "art-17",
@@ -236,11 +240,12 @@ export const mockArticles: NewsArticle[] = [
       "Merchandise exports rose 7.2% YoY driven by electronics, engineering goods, and pharmaceuticals. The trade deficit narrowed to $17 billion as oil import bill declined.",
     source: "Economic Times",
     url: "https://economictimes.com/exports",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T10:15:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 7,
     tags: ["exports", "trade balance", "manufacturing", "electronics"],
+    isLiveData: false,
   },
   {
     id: "art-18",
@@ -249,11 +254,12 @@ export const mockArticles: NewsArticle[] = [
       "The government allocated Rs 10,000 crore for AI compute infrastructure including 10,000 GPU clusters, aiming to make India a global AI hub and attract research investments from tech giants.",
     source: "Indian Express",
     url: "https://indianexpress.com/indiaai",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T08:45:00Z",
     category: "political",
     subcategory: "Indian National",
     economicImpactScore: 8,
     tags: ["AI", "technology policy", "compute", "digital infrastructure"],
+    isLiveData: false,
   },
   {
     id: "art-19",
@@ -262,11 +268,12 @@ export const mockArticles: NewsArticle[] = [
       "Ongoing Houthi attacks in the Red Sea have forced major shipping companies to reroute via Cape of Good Hope, increasing India's import costs by 15-20% for European goods and adding 10-12 days transit time.",
     source: "Bloomberg",
     url: "https://bloomberg.com/red-sea",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T07:30:00Z",
     category: "international",
     subcategory: "International",
     economicImpactScore: 7,
     tags: ["geopolitics", "shipping", "trade disruption", "supply chain"],
+    isLiveData: false,
   },
   {
     id: "art-20",
@@ -275,11 +282,12 @@ export const mockArticles: NewsArticle[] = [
       "Mumbai Metropolitan Region recorded highest-ever housing sales of 1.4 lakh units in 2024, driven by infrastructure projects like Metro lines and coastal road, pushing property prices up 12-15%.",
     source: "Times of India",
     url: "https://timesofindia.com/mumbai-realestate",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T14:00:00Z",
     category: "domestic",
     subcategory: "Indian Local",
     economicImpactScore: 6,
     tags: ["real estate", "Mumbai", "housing", "infrastructure"],
+    isLiveData: false,
   },
   {
     id: "art-21",
@@ -288,11 +296,12 @@ export const mockArticles: NewsArticle[] = [
       "India's electronics manufacturing output hit the $100 billion milestone, with mobile phone production accounting for 45%. Apple's iPhone exports from India crossed $10 billion mark.",
     source: "Business Standard",
     url: "https://business-standard.com/pli",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T12:30:00Z",
     category: "economic",
     subcategory: "Indian National",
     economicImpactScore: 8,
     tags: ["PLI scheme", "electronics", "manufacturing", "Apple"],
+    isLiveData: false,
   },
   {
     id: "art-22",
@@ -301,11 +310,12 @@ export const mockArticles: NewsArticle[] = [
       "IMD data shows 2024 was among the warmest years for India, with extreme weather events causing Rs 2 lakh crore in agricultural losses and accelerating the push for climate adaptation measures.",
     source: "Down to Earth",
     url: "https://downtoearth.org/climate",
-    publishedAt: daysAgo(3),
+    publishedAt: "2024-12-12T15:15:00Z",
     category: "domestic",
     subcategory: "Indian National",
     economicImpactScore: 7,
     tags: ["climate change", "agriculture", "extreme weather", "food security"],
+    isLiveData: false,
   },
 ];
 
@@ -328,6 +338,7 @@ export const mockNodes: EconomicNode[] = mockArticles.map((article) => ({
   source: article.source,
   economicImpactScore: article.economicImpactScore,
   tags: article.tags,
+  url: article.url,
 }));
 
 export const mockEdges: EconomicEdge[] = [
@@ -500,6 +511,10 @@ export const mockPredictions: Prediction[] = [
     outcome: "GDP came in at 6.7% in Q2 due to government spending slowdown",
   },
 ];
+
+function todayStr(): string {
+  return new Date().toISOString().split("T")[0];
+}
 
 export const mockDailySummary: DailySummary = {
   id: `summary-${todayStr()}`,

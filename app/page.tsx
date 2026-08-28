@@ -1,6 +1,7 @@
 "use client";
 
 import { DailySummary } from "@/components/DailySummary";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { useAnalysis, useNews } from "@/lib/hooks/useApiData";
 import { Zap, Newspaper, TrendingUp, Network, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -30,14 +31,14 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { data: analysisData, loading: analysisLoading } = useAnalysis();
-  const { data: newsData, loading: newsLoading } = useNews();
+  const { data: newsData, loading: newsLoading, dataSource } = useNews();
 
   const loading = analysisLoading || newsLoading;
   const summary = analysisData?.summary;
   const articles = newsData?.articles || [];
 
   const topArticles = [...articles]
-    .sort((a, b) => b.economicImpactScore - a.economicImpactScore)
+    .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
     .slice(0, 5);
 
   if (loading) {
@@ -67,6 +68,7 @@ export default function DashboardPage() {
             AI-powered economic intelligence for {summary?.date || new Date().toISOString().split("T")[0]}
           </p>
         </div>
+        <DataSourceBadge dataSource={dataSource} />
       </motion.div>
 
       {/* Quick Stats */}
@@ -152,7 +154,7 @@ export default function DashboardPage() {
         {/* Top Impact Articles */}
         <div className="glass rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">
-            Highest Impact Articles
+            Most Relevant Articles
           </h2>
           <div className="space-y-3">
             {topArticles.map((article) => (
@@ -169,6 +171,11 @@ export default function DashboardPage() {
                     {article.category}
                   </span>
                   <span className="text-xs text-gray-500">{article.source}</span>
+                  {article.relevanceScore !== undefined && (
+                    <span className="text-xs text-indigo-400 ml-auto">
+                      {Math.round(article.relevanceScore * 100)}% relevant
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-200 line-clamp-1">
                   {article.title}

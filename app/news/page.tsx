@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Newspaper, Search, Filter, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NewsCard } from "@/components/NewsCard";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { useNews } from "@/lib/hooks/useApiData";
 
 const categories = ["all", "domestic", "international", "economic", "political"] as const;
@@ -13,11 +14,12 @@ export default function NewsPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("All");
-  const [sortBy, setSortBy] = useState<"date" | "impact">("date");
+  const [sortBy, setSortBy] = useState<"relevance" | "date" | "impact">("relevance");
 
-  const { data, loading } = useNews({
+  const { data, loading, dataSource } = useNews({
     category: selectedCategory,
     search: search || undefined,
+    sort: sortBy,
   });
 
   const rawArticles = data?.articles;
@@ -34,8 +36,11 @@ export default function NewsPage() {
         (a, b) =>
           new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
       );
-    } else {
+    } else if (sortBy === "impact") {
       result.sort((a, b) => b.economicImpactScore - a.economicImpactScore);
+    } else {
+      // relevance (default)
+      result.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
     }
 
     return result;
@@ -48,14 +53,18 @@ export default function NewsPage() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
       >
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Newspaper className="h-6 w-6 text-indigo-400" />
-          News Feed
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Summarized articles from Indian and international sources
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Newspaper className="h-6 w-6 text-indigo-400" />
+            News Feed
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Summarized articles from Indian and international sources
+          </p>
+        </div>
+        <DataSourceBadge dataSource={dataSource} />
       </motion.div>
 
       {/* Filters */}
@@ -130,6 +139,14 @@ export default function NewsPage() {
           </span>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Sort by:</span>
+            <button
+              onClick={() => setSortBy("relevance")}
+              className={`text-xs px-2 py-1 rounded ${
+                sortBy === "relevance" ? "text-indigo-400" : "text-gray-500"
+              }`}
+            >
+              Relevance
+            </button>
             <button
               onClick={() => setSortBy("date")}
               className={`text-xs px-2 py-1 rounded ${

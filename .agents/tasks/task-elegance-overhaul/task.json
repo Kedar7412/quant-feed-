@@ -1,0 +1,7 @@
+{
+  "task_id": "task-elegance-overhaul",
+  "task_description": "Complete overhaul of QuantFeed: fix data freshness (remove fake mock dates, add recency-weighted scoring, topic correlation algorithm), upgrade 3D graph interaction (hover tooltips, click detail panel with Visit Article link, edge highlighting, related nodes), and premium visual design upgrade (Bloomberg Terminal meets Apple aesthetic).",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

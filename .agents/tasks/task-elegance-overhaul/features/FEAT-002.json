@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "3D graph interaction overhaul - on zoom/hover show article headline, source, thumbnail image; on click show detail panel with full summary and 'Visit Article' link; highlight related articles (connected edges glow) when a node is selected; add text labels visible at appropriate zoom levels.",
+  "status": "pending",
+  "steps": [
+    "Step 1: Update `lib/types.ts` EconomicNode interface - Ensure it has `url?: string` and `imageUrl?: string` fields (may already be added in FEAT-001). Add `freshnessScore?: number` to EconomicNode as well.",
+    "Step 2: Update `app/api/graph/route.ts` - When building nodes from articles, include the article's `url` field and `imageUrl` (use a category-based placeholder URL pattern like `https://placehold.co/120x80/1a1a2e/6366f1?text=Economic` if no image available). Pass article url through to node.",
+    "Step 3: Overhaul `components/NetworkGraph.tsx` node rendering - Replace the current basic sphere nodeThreeObject with a richer version: (a) The sphere remains but gets a pulsing animation for fresh articles (freshnessScore > 0.7). (b) Add a THREE.Sprite with a text label (article title, max 30 chars) that appears when camera distance to node is < 150 units. Use THREE.CanvasTexture to render text. (c) Keep the outer glow sphere but make its opacity tied to freshnessScore (fresher = brighter glow).",
+    "Step 4: Add hover tooltip to NetworkGraph - Use the `nodeLabel` prop of ForceGraph3D to show a tooltip on hover with: source name, truncated headline (50 chars), and freshness indicator (e.g., 'Fresh' or '3 days ago'). Format as HTML string since react-force-graph supports it.",
+    "Step 5: Overhaul the selected node detail panel in NetworkGraph - Redesign the bottom panel that appears on node click. New layout: (a) Left side: category-colored placeholder image (120x80px div with gradient background and category icon). (b) Center: headline (full title), source + date, summary text (up to 200 chars). (c) Right side: 'Visit Article' button that links to `selectedArticle.url` (opens in new tab). (d) Below: list of related article titles (articles connected via edges to the selected node) as small clickable chips. (e) Add freshnessScore visual indicator (small colored bar: green for fresh, amber for moderate, gray for old). (f) Style with glass-strong + subtle gradient border on the selected category color.",
+    "Step 6: Implement edge highlighting on node selection - When a node is selected: (a) Find all edges connected to that node. (b) Change their color to a bright glow color (white or the node's category color) with increased width. (c) Connected nodes should get a subtle brightness boost. (d) Use the ForceGraph3D `linkColor` and `linkWidth` callback props, making them reactive to `selectedNode` state. Non-connected links should dim (lower opacity).",
+    "Step 7: Add related nodes listing in the detail panel - When a node is selected, find all nodes connected to it via edges. Display them as small clickable tags below the summary. Clicking a related node should select it (call handleNodeClick on that node). Show the relationship description from the edge on hover.",
+    "Step 8: Update the network page header (`app/network/page.tsx`) - Replace the hardcoded 'Live' badge with the DataSourceBadge component (from FEAT-001). Add a small legend showing freshness color coding (bright glow = fresh news, dim = older)."
+  ],
+  "acceptance_criteria": [
+    "Hovering over a node shows a tooltip with headline, source, and freshness info",
+    "Clicking a node shows an enhanced detail panel with headline, summary, source, date, freshness bar, and 'Visit Article' button",
+    "The 'Visit Article' button links to the article's source URL and opens in a new tab",
+    "Connected edges glow/highlight when a node is selected; unconnected edges dim",
+    "Related articles are shown as clickable chips in the detail panel",
+    "Clicking a related article chip navigates the graph to that node",
+    "Node glow intensity reflects freshness score",
+    "Project builds successfully with `npx next build`"
+  ],
+  "verification": [
+    "Run `npx next build` in /projects/sandbox/quant-feed- and confirm it completes without errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

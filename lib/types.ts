@@ -9,6 +9,17 @@ export interface NewsArticle {
   subcategory: "Indian Local" | "Indian National" | "International";
   economicImpactScore: number; // 1-10
   tags: string[];
+  freshnessScore?: number; // 0-1, exponential decay from publish time
+  relevanceScore?: number; // 0-1, combined freshness + impact + velocity
+  isLiveData?: boolean; // true = live-fetched, false = mock/cached
+}
+
+export interface TopicCorrelation {
+  topicId: string;
+  keywords: string[];
+  articleIds: string[];
+  changeVelocity: number;
+  latestArticleDate: string;
 }
 
 export interface EconomicNode {
@@ -26,6 +37,9 @@ export interface EconomicNode {
   source?: string;
   economicImpactScore?: number;
   tags?: string[];
+  url?: string;
+  imageUrl?: string;
+  freshnessScore?: number;
 }
 
 export interface EconomicEdge {

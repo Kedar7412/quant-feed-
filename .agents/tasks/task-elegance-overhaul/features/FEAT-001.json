@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Data freshness system with recency-weighted correlation algorithm. Remove fake freshness from mock data, add clear live/cached indicators, implement exponential decay scoring for article relevance, and build a topic-tracking correlation engine that computes change velocity between old and new articles on the same economic threads.",
+  "status": "in_progress",
+  "steps": [
+    "Step 1: Create new branch `feat/elegance-overhaul` from current HEAD of `feat/3d-overhaul`.",
+    "Step 2: Create `lib/freshness/recency-scorer.ts` - Implement an exponential decay freshness scoring algorithm. Articles from today get score 1.0, with half-life of ~12 hours (exponential decay). Export a `computeFreshnessScore(publishedAt: string): number` function that returns 0-1. Also export `computeRelevanceScore(article: NewsArticle): number` that combines freshness score (weight 0.5) with economicImpactScore/10 (weight 0.3) and a topic velocity bonus (weight 0.2).",
+    "Step 3: Create `lib/freshness/topic-tracker.ts` - Build a topic correlation engine. Key functions: (a) `extractTopicFingerprint(article: NewsArticle): string[]` - extract normalized keywords/entities from title+tags. (b) `computeTopicOverlap(a: NewsArticle, b: NewsArticle): number` - Jaccard similarity between fingerprints (0-1). (c) `computeChangeVelocity(articles: NewsArticle[], topicKeywords: string[]): number` - Given articles matching a topic sorted by date, compute how quickly the topic is evolving (more articles in recent hours = higher velocity, max 1.0). (d) `buildTopicCorrelations(articles: NewsArticle[]): TopicCorrelation[]` - Group articles by topic clusters (shared keywords threshold >= 0.3 Jaccard), compute velocity and list connected article IDs. Export a `TopicCorrelation` interface with fields: topicId, keywords, articleIds, changeVelocity, latestArticleDate.",
+    "Step 4: Update `lib/types.ts` - Add new fields to `NewsArticle`: `freshnessScore?: number` (0-1), `relevanceScore?: number` (0-1), `isLiveData?: boolean` (distinguishes live-fetched from mock/cached). Add `imageUrl?: string` and `articleUrl?: string` (explicit link) to `EconomicNode`. Add a new exported interface `TopicCorrelation { topicId: string; keywords: string[]; articleIds: string[]; changeVelocity: number; latestArticleDate: string; }`. Add `url?: string` and `imageUrl?: string` fields to `EconomicNode`.",
+    "Step 5: Update `app/api/news/route.ts` - After fetching articles (live or cached), compute freshnessScore and relevanceScore for each article using the new recency-scorer. Mark live-fetched articles with `isLiveData: true`. When falling back to mockArticles, mark them with `isLiveData: false`. Change the default sort from purely chronological to `relevanceScore` descending (recent + high-impact articles surface first). Add a response field `dataSource: 'live' | 'cached' | 'sample'` to the JSON response indicating where data came from.",
+    "Step 6: Update `app/api/graph/route.ts` - After building graph data, compute topic correlations using `buildTopicCorrelations`. Include correlations in the API response as a new field `correlations: TopicCorrelation[]`. Also include `freshnessScore` in each node object. Add `dataSource` field to response.",
+    "Step 7: Update `lib/hooks/useApiData.ts` - Add `dataSource` tracking to the news and graph hooks. Update the `NewsResponse` interface to include `dataSource: 'live' | 'cached' | 'sample'`. In the fallback (mock) path of useNews and useGraphData hooks, set dataSource to 'sample'. Expose `dataSource` from each hook's return value.",
+    "Step 8: Update `lib/mock-data.ts` - Remove the `daysAgo()` trick. Replace all `publishedAt: daysAgo(0)` with actual fixed dates in the past (e.g., '2024-12-15T09:30:00Z'). This makes it honest that mock data is old. Add `isLiveData: false` to all mockArticles. Keep mockPredictions but update their dates to be clearly historical (2024 dates with past target dates).",
+    "Step 9: Create a `components/DataSourceBadge.tsx` component - Shows a small badge indicating whether displayed data is 'Live', 'Cached', or 'Sample Data'. Use green dot + 'Live' for live, amber dot + 'Cached' for cached, gray dot + 'Sample Data' for sample. Accept `dataSource` prop and render appropriately.",
+    "Step 10: Update `app/page.tsx` and `app/news/page.tsx` - Add the DataSourceBadge component near the header, passing the dataSource from the hooks. In the news list, sort articles by relevanceScore by default (add a 'Relevance' sort option alongside Date and Impact)."
+  ],
+  "acceptance_criteria": [
+    "Mock articles no longer use daysAgo() - they have fixed historical dates",
+    "All articles returned from /api/news include freshnessScore and relevanceScore fields",
+    "API response includes dataSource field ('live', 'cached', or 'sample')",
+    "Graph API response includes correlations array with topic clusters",
+    "DataSourceBadge component renders correctly for all three states",
+    "Default article sort uses relevanceScore (freshness + impact combined)",
+    "The topic tracker correctly groups articles with shared keywords (>=0.3 Jaccard) and computes change velocity",
+    "Project builds successfully with `npx next build`"
+  ],
+  "verification": [
+    "Run `npx next build` in /projects/sandbox/quant-feed- and confirm it completes without errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
