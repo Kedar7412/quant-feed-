@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "3D graph interaction overhaul - on zoom/hover show article headline, source, thumbnail image; on click show detail panel with full summary and 'Visit Article' link; highlight related articles (connected edges glow) when a node is selected; add text labels visible at appropriate zoom levels.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Step 1: Update `lib/types.ts` EconomicNode interface - Ensure it has `url?: string` and `imageUrl?: string` fields (may already be added in FEAT-001). Add `freshnessScore?: number` to EconomicNode as well.",
     "Step 2: Update `app/api/graph/route.ts` - When building nodes from articles, include the article's `url` field and `imageUrl` (use a category-based placeholder URL pattern like `https://placehold.co/120x80/1a1a2e/6366f1?text=Economic` if no image available). Pass article url through to node.",
@@ -27,5 +27,5 @@
     "Run `npx next build` in /projects/sandbox/quant-feed- and confirm it completes without errors"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build passes cleanly. Used useMemo for connected node/edge calculations. ForceGraph3D nodeLabel prop accepts HTML strings for rich tooltips. linkColor and linkWidth callbacks are reactive to selectedNode state. Used Array.from() not needed here since we used Set.has() checks."
 }
