@@ -1,0 +1,25 @@
+{
+  "project_type": "Next.js 14 App Router full-stack application with AI-powered news analysis",
+  "language": "TypeScript (frontend + API routes), Python not needed since we use Next.js API routes with AI APIs",
+  "build_system": "npm with Next.js 14, deployed to Vercel",
+  "test_framework": "Jest with React Testing Library for components, integration tests for API routes",
+  "build_command": "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && npm run build",
+  "test_command": "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && npm run lint",
+  "verification_instructions": "1. Run npm run build to verify Next.js builds successfully. 2. Run npm run lint to check code quality. 3. Verify all pages render without errors.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "1. source ~/.nvm/nvm.sh to get node in PATH. 2. npm install in project root. 3. Copy .env.example to .env.local and add API keys.",
+  "environment_constraints": "Node.js accessed via nvm (must source ~/.nvm/nvm.sh). OPEN_INTERNET mode - full package install and API access available. Target deployment is Vercel.",
+  "contribution_requirements": "Create feature branch, commit, push, open PR to main. Never push directly to main.",
+  "key_patterns": "Next.js 14 App Router conventions: app/ directory for routes, components/ for shared UI, lib/ for utilities, API routes in app/api/. Use server components by default, client components only when needed for interactivity.",
+  "relevant_files": [
+    "package.json",
+    "next.config.js",
+    "tailwind.config.ts",
+    "app/layout.tsx",
+    "app/page.tsx",
+    "app/api/",
+    "components/",
+    "lib/"
+  ],
+  "directory_structure": "Next.js 14 App Router structure: app/ (pages + API routes), components/ (React components), lib/ (utilities, data fetching, AI processing), public/ (static assets), types/ (TypeScript types)"
+}

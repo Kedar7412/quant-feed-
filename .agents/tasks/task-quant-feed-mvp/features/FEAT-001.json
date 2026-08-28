@@ -1,0 +1,44 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Initialize Next.js 14 project with App Router, Tailwind CSS, TypeScript, and core application structure including the neural network graph visualization page, news feed page, and AI analysis dashboard. Set up the complete project scaffold that can be deployed to Vercel.",
+  "status": "in_progress",
+  "steps": [
+    "Initialize Next.js 14 project with TypeScript, Tailwind CSS, ESLint using create-next-app in /projects/sandbox/quant-feed-/",
+    "Install core dependencies: react-force-graph-2d (for neural network visualization), d3 (for graph data manipulation), lucide-react (icons), date-fns (date formatting), @radix-ui/react-dialog @radix-ui/react-tabs @radix-ui/react-tooltip (UI primitives)",
+    "Create app/layout.tsx with dark theme layout, navigation sidebar with links to Dashboard, Network Graph, News Feed, Analysis, and Predictions pages",
+    "Create app/page.tsx as the main dashboard showing today's summary, key economic indicators, and top news clusters",
+    "Create app/network/page.tsx with an interactive force-directed graph visualization using react-force-graph-2d. Nodes represent news articles (colored by category: domestic/international/economic/political). Edges represent economic linkages between articles. Clicking a node shows article summary and predicted pathways.",
+    "Create app/news/page.tsx showing a filterable feed of summarized news articles organized by category (Indian Local, Indian National, International) with search and date filtering",
+    "Create app/analysis/page.tsx showing the AI daily analysis with economic pathway predictions from micro to macro, pathway simulation where users can select different news inputs and see predicted outcomes",
+    "Create app/predictions/page.tsx showing historical predictions, their accuracy, and current active predictions with confidence scores",
+    "Create components/NetworkGraph.tsx - client component wrapping react-force-graph-2d with proper TypeScript types, zoom/pan controls, node click handlers, legend, and category filtering",
+    "Create components/NewsCard.tsx - card component showing summarized article with source, date, category badge, economic impact score, and link to original",
+    "Create components/PathwaySimulator.tsx - interactive component where users can toggle news events on/off and see how predicted economic pathways change",
+    "Create components/DailySummary.tsx - component showing AI-generated daily economic summary with key takeaways",
+    "Create components/Sidebar.tsx - navigation sidebar component with app branding and route links",
+    "Create lib/types.ts with TypeScript interfaces: NewsArticle, EconomicNode, EconomicEdge, Pathway, Prediction, DailySummary, GraphData",
+    "Create lib/mock-data.ts with realistic mock data for development: 20+ sample news articles from Indian and international sources, graph relationships between them, sample pathways and predictions",
+    "Create public/favicon.ico and app metadata configuration for SEO",
+    "Create .env.example with placeholder values for NEWS_API_KEY, OPENAI_API_KEY, and DATABASE_URL",
+    "Create README.md with project description, setup instructions, architecture overview, and deployment guide",
+    "Ensure the app builds successfully with npm run build and has no lint errors"
+  ],
+  "acceptance_criteria": [
+    "npm run build completes without errors",
+    "npm run lint passes",
+    "All 5 pages (dashboard, network, news, analysis, predictions) render properly",
+    "Network graph visualization renders with mock data showing interconnected nodes",
+    "Clicking nodes in the graph shows article details",
+    "News feed displays categorized articles with filtering",
+    "Analysis page shows pathway simulation interface",
+    "Dark theme is applied consistently across all pages",
+    "README.md documents the project architecture and setup"
+  ],
+  "verification": [
+    "Run: export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && cd /projects/sandbox/quant-feed- && npm run build",
+    "Run: export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && cd /projects/sandbox/quant-feed- && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
