@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getGraphData, getArticles, saveArticles, saveEdges } from "@/lib/news/store";
-import { fetchLiveNews } from "@/lib/news/fetcher";
+import { getCachedLiveNews } from "@/lib/news/live-cache";
 import { extractRelationships } from "@/lib/ai/relationship-extractor";
 import { mockGraphData, mockArticles } from "@/lib/mock-data";
-import { GraphData } from "@/lib/types";
+import { GraphData, NewsArticle } from "@/lib/types";
 import { computeFreshnessScore } from "@/lib/freshness/recency-scorer";
 import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
 
@@ -17,43 +17,56 @@ export async function GET(request: Request) {
     const endDate = searchParams.get("endDate");
 
     let dataSource: "live" | "cached" | "sample" = "cached";
-    let graphData: GraphData = getGraphData();
+    let graphData: GraphData = { nodes: [], links: [] };
+    // Article set used to annotate nodes and build correlations below.
+    let articles: NewsArticle[] = [];
 
-    // If graph store is empty, attempt to fetch live data and generate relationships
-    if (graphData.nodes.length === 0) {
-      try {
-        let articles = getArticles();
-
-        // If article store is also empty, try a live fetch
-        if (articles.length === 0) {
-          const liveArticles = await fetchLiveNews();
-          if (liveArticles.length > 0) {
-            saveArticles(liveArticles);
-            articles = liveArticles;
-            dataSource = "live";
-          }
+    // Live-fetch-first: build the graph from freshly fetched articles so the
+    // network reflects current news even when the /tmp store is empty (the
+    // common Vercel serverless case). Falls back to /tmp, then sample data.
+    try {
+      const liveArticles = await getCachedLiveNews();
+      if (liveArticles.length > 0) {
+        articles = liveArticles;
+        dataSource = "live";
+        try {
+          saveArticles(liveArticles);
+        } catch (persistError) {
+          console.error("Best-effort saveArticles failed:", persistError);
         }
-
-        // Generate relationships from articles using tag-matching fallback
-        if (articles.length > 0) {
-          const edges = await extractRelationships(articles);
+        const edges = await extractRelationships(liveArticles);
+        try {
           saveEdges(edges);
-          // Re-read graph data from store (now populated)
-          graphData = getGraphData();
+        } catch (persistError) {
+          console.error("Best-effort saveEdges failed:", persistError);
         }
-      } catch (error) {
-        console.error("Error generating live graph data:", error);
+        graphData = getGraphData();
+      }
+    } catch (error) {
+      console.error("Error generating live graph data:", error);
+    }
+
+    // Fall back to any /tmp-persisted graph data if the live fetch was empty.
+    if (graphData.nodes.length === 0) {
+      const stored = getGraphData();
+      if (stored.nodes.length > 0) {
+        graphData = stored;
+        articles = getArticles();
+        dataSource = "cached";
       }
     }
 
-    // Final fallback to mock data if still empty
+    // Final fallback to mock data if still empty.
     if (graphData.nodes.length === 0) {
       graphData = mockGraphData;
+      articles = mockArticles;
       dataSource = "sample";
     }
 
     // Add freshnessScore to each node
-    const articles = getArticles().length > 0 ? getArticles() : mockArticles;
+    if (articles.length === 0) {
+      articles = getArticles().length > 0 ? getArticles() : mockArticles;
+    }
     const articleMap = new Map(articles.map((a) => [a.id, a]));
 
     const categoryPlaceholders: Record<string, string> = {

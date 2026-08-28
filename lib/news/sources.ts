@@ -6,7 +6,77 @@ export interface NewsSource {
   subcategory: "Indian Local" | "Indian National" | "International";
 }
 
+// Helper to build a Google News RSS search URL. The `when:1d` operator scopes
+// results to the last 24 hours, guaranteeing current-dated items. Region
+// params default to India (hl=en-IN, gl=IN, ceid=IN:en); pass US params for
+// global/US-centric queries.
+function googleNewsRss(
+  query: string,
+  region: "IN" | "US" = "IN"
+): string {
+  const encoded = encodeURIComponent(`${query} when:1d`);
+  const params =
+    region === "US"
+      ? "hl=en-US&gl=US&ceid=US:en"
+      : "hl=en-IN&gl=IN&ceid=IN:en";
+  return `https://news.google.com/rss/search?q=${encoded}&${params}`;
+}
+
 export const newsSources: NewsSource[] = [
+  // ---------------------------------------------------------------------------
+  // Google News RSS search feeds - PRIMARY reliable source.
+  // These always return current-dated (last-24h) items via the `when:1d`
+  // operator and do not 403/timeout like some direct publisher feeds.
+  // ---------------------------------------------------------------------------
+  {
+    name: "Google News - India Economy",
+    url: googleNewsRss("india economy"),
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Google News - RBI Monetary Policy",
+    url: googleNewsRss("RBI monetary policy"),
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Google News - Sensex Nifty Markets",
+    url: googleNewsRss("sensex nifty stock market"),
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Google News - India Inflation GDP",
+    url: googleNewsRss("india inflation gdp"),
+    type: "rss",
+    category: "economic",
+    subcategory: "Indian National",
+  },
+  {
+    name: "Google News - Global Markets Fed",
+    url: googleNewsRss("global markets fed", "US"),
+    type: "rss",
+    category: "international",
+    subcategory: "International",
+  },
+  {
+    name: "Google News - Crude Oil Commodities",
+    url: googleNewsRss("crude oil commodities"),
+    type: "rss",
+    category: "international",
+    subcategory: "International",
+  },
+  {
+    name: "Google News - India Politics Policy",
+    url: googleNewsRss("india politics policy"),
+    type: "rss",
+    category: "political",
+    subcategory: "Indian National",
+  },
   // Indian News Sources - National Economic/Business RSS Feeds
   {
     name: "The Hindu - Business",
@@ -122,27 +192,10 @@ export const newsSources: NewsSource[] = [
     subcategory: "Indian National",
   },
   // International News Sources - RSS Feeds
-  {
-    name: "Reuters - Business",
-    url: "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best",
-    type: "rss",
-    category: "international",
-    subcategory: "International",
-  },
-  {
-    name: "Bloomberg - Markets",
-    url: "https://feeds.bloomberg.com/markets/news.rss",
-    type: "rss",
-    category: "international",
-    subcategory: "International",
-  },
-  {
-    name: "Financial Times - World",
-    url: "https://www.ft.com/world?format=rss",
-    type: "rss",
-    category: "international",
-    subcategory: "International",
-  },
+  // NOTE: Reuters (reutersagency.com), Bloomberg (feeds.bloomberg.com) and
+  // Financial Times (ft.com) feeds are intentionally removed - they commonly
+  // 403 or time out from serverless environments. Google News RSS search
+  // feeds (above) cover the same international/markets ground reliably.
   {
     name: "Al Jazeera - Economy",
     url: "https://www.aljazeera.com/xml/rss/all.xml",

@@ -20,6 +20,41 @@ interface RSSItem {
   pubDate?: string;
   isoDate?: string;
   categories?: string[];
+  // Google News RSS items carry a <source> element with the real outlet name.
+  // rss-parser exposes it either as a string or as an object with a title.
+  source?: string | { title?: string; _?: string };
+}
+
+/**
+ * Google News RSS titles are formatted as "Headline - Source Name". Split off
+ * the trailing " - <source>" so we can show a clean headline and recover the
+ * outlet when the dedicated <source> element is absent. Returns the original
+ * title unchanged when no separator is found.
+ */
+function parseGoogleNewsTitle(rawTitle: string): {
+  title: string;
+  source?: string;
+} {
+  const separatorIndex = rawTitle.lastIndexOf(" - ");
+  if (separatorIndex > 0 && separatorIndex < rawTitle.length - 3) {
+    const title = rawTitle.slice(0, separatorIndex).trim();
+    const source = rawTitle.slice(separatorIndex + 3).trim();
+    // Only treat it as a source if the trailing segment is a short-ish name
+    // (avoids mangling headlines that legitimately contain " - ").
+    if (title.length > 0 && source.length > 0 && source.length <= 60) {
+      return { title, source };
+    }
+  }
+  return { title: rawTitle };
+}
+
+/** Extract the outlet name from the RSS <source> element, if present. */
+function extractRssSource(
+  source: string | { title?: string; _?: string } | undefined
+): string | undefined {
+  if (!source) return undefined;
+  if (typeof source === "string") return source.trim() || undefined;
+  return (source.title || source._ || "").trim() || undefined;
 }
 
 function generateId(): string {
@@ -78,15 +113,29 @@ async function fetchFromRSS(source: NewsSource): Promise<NewsArticle[]> {
     const feed = await parser.parseURL(source.url);
     const items: RSSItem[] = feed.items || [];
 
+    const isGoogleNews = source.url.includes("news.google.com");
+
     return items.slice(0, 10).map((item: RSSItem) => {
-      const title = item.title || "Untitled";
+      const rawTitle = item.title || "Untitled";
       const content = item.contentSnippet || item.content || "";
+
+      // For Google News feeds, strip the trailing " - Source" from the title
+      // and prefer the real outlet name (from the <source> element or the
+      // parsed title suffix) over the generic feed name.
+      let title = rawTitle;
+      let displaySource = source.name;
+      if (isGoogleNews) {
+        const parsed = parseGoogleNewsTitle(rawTitle);
+        title = parsed.title;
+        const rssSource = extractRssSource(item.source);
+        displaySource = rssSource || parsed.source || source.name;
+      }
 
       return {
         id: generateId(),
         title,
         summary: content.substring(0, 300) || title,
-        source: source.name,
+        source: displaySource,
         url: item.link || source.url,
         publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
         category: source.category,
@@ -209,7 +258,23 @@ export async function fetchLiveNews(): Promise<NewsArticle[]> {
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );
 
-  return deduplicated;
+  // Recency filter: drop articles older than 7 days so the feed reflects
+  // current events. But never leave the feed too sparse - if fewer than a
+  // handful of within-7-day items remain, keep the newest items regardless so
+  // a slow feed day never produces an empty response.
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const MIN_RECENT = 5;
+  const now = Date.now();
+  const recent = deduplicated.filter(
+    (a) => now - new Date(a.publishedAt).getTime() <= SEVEN_DAYS_MS
+  );
+  const filtered =
+    recent.length >= MIN_RECENT
+      ? recent
+      : deduplicated.slice(0, Math.max(MIN_RECENT, recent.length));
+
+  // Mark all live-fetched articles with the live-data provenance flag.
+  return filtered.map((article) => ({ ...article, isLiveData: true }));
 }
 
 export async function fetchFromSource(source: NewsSource): Promise<NewsArticle[]> {
