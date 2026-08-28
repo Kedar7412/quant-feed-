@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Newspaper, Search, Filter } from "lucide-react";
+import { Newspaper, Search, Filter, Loader2 } from "lucide-react";
 import { NewsCard } from "@/components/NewsCard";
-import { mockArticles } from "@/lib/mock-data";
+import { useNews } from "@/lib/hooks/useApiData";
 
 const categories = ["all", "domestic", "international", "economic", "political"] as const;
 const subcategories = ["All", "Indian Local", "Indian National", "International"] as const;
@@ -14,38 +14,31 @@ export default function NewsPage() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("All");
   const [sortBy, setSortBy] = useState<"date" | "impact">("date");
 
+  const { data, loading } = useNews({
+    category: selectedCategory,
+    search: search || undefined,
+  });
+
+  const rawArticles = data?.articles;
+
   const filteredArticles = useMemo(() => {
-    let articles = [...mockArticles];
-
-    if (search) {
-      const searchLower = search.toLowerCase();
-      articles = articles.filter(
-        (a) =>
-          a.title.toLowerCase().includes(searchLower) ||
-          a.summary.toLowerCase().includes(searchLower) ||
-          a.tags.some((t) => t.toLowerCase().includes(searchLower))
-      );
-    }
-
-    if (selectedCategory !== "all") {
-      articles = articles.filter((a) => a.category === selectedCategory);
-    }
+    let result = [...(rawArticles || [])];
 
     if (selectedSubcategory !== "All") {
-      articles = articles.filter((a) => a.subcategory === selectedSubcategory);
+      result = result.filter((a) => a.subcategory === selectedSubcategory);
     }
 
     if (sortBy === "date") {
-      articles.sort(
+      result.sort(
         (a, b) =>
           new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
       );
     } else {
-      articles.sort((a, b) => b.economicImpactScore - a.economicImpactScore);
+      result.sort((a, b) => b.economicImpactScore - a.economicImpactScore);
     }
 
-    return articles;
-  }, [search, selectedCategory, selectedSubcategory, sortBy]);
+    return result;
+  }, [rawArticles, selectedSubcategory, sortBy]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -119,7 +112,7 @@ export default function NewsPage() {
         {/* Sort & Results Count */}
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500">
-            {filteredArticles.length} articles found
+            {loading ? "Loading..." : `${filteredArticles.length} articles found`}
           </span>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Sort by:</span>
@@ -143,18 +136,28 @@ export default function NewsPage() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
+          <span className="ml-2 text-sm text-gray-400">Loading articles...</span>
+        </div>
+      )}
+
       {/* Articles List */}
-      <div className="space-y-3">
-        {filteredArticles.map((article) => (
-          <NewsCard key={article.id} article={article} />
-        ))}
-        {filteredArticles.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No articles match your filters</p>
-          </div>
-        )}
-      </div>
+      {!loading && (
+        <div className="space-y-3">
+          {filteredArticles.map((article) => (
+            <NewsCard key={article.id} article={article} />
+          ))}
+          {filteredArticles.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <Newspaper className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No articles match your filters</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

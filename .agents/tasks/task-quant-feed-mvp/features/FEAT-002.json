@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Implement the backend API routes for news aggregation, AI summarization, economic analysis, and pathway prediction. Create serverless API endpoints that fetch news from RSS feeds and news APIs, use OpenAI for summarization and relationship extraction, perform economic pathway analysis, and store/retrieve article data.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Install additional dependencies: openai (for AI summarization and analysis), rss-parser (for RSS feed parsing), cheerio (for web scraping fallback), better-sqlite3 or use a JSON file store for MVP data persistence compatible with Vercel serverless",
     "Create lib/ai/summarizer.ts - function that takes a news article and returns a concise summary using OpenAI API with focus on economic implications",
