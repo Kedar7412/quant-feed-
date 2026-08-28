@@ -1,0 +1,43 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Implement the backend API routes for news aggregation, AI summarization, economic analysis, and pathway prediction. Create serverless API endpoints that fetch news from RSS feeds and news APIs, use OpenAI for summarization and relationship extraction, perform economic pathway analysis, and store/retrieve article data.",
+  "status": "completed",
+  "steps": [
+    "Install additional dependencies: openai (for AI summarization and analysis), rss-parser (for RSS feed parsing), cheerio (for web scraping fallback), better-sqlite3 or use a JSON file store for MVP data persistence compatible with Vercel serverless",
+    "Create lib/ai/summarizer.ts - function that takes a news article and returns a concise summary using OpenAI API with focus on economic implications",
+    "Create lib/ai/relationship-extractor.ts - function that analyzes multiple articles and identifies economic relationships/linkages between them, outputting graph edges with relationship type and strength",
+    "Create lib/ai/pathway-analyzer.ts - function that takes a set of related news events and predicts economic pathways from micro to macro level, with confidence scores and timeframes",
+    "Create lib/ai/daily-summary-generator.ts - function that generates a comprehensive daily economic summary analyzing all news from the day, highlighting key trends and predictions",
+    "Create lib/news/sources.ts - configuration file listing RSS feeds and news API endpoints for Indian news (The Hindu, Economic Times, Mint, NDTV, Times of India) and international news (Reuters, Bloomberg, Financial Times RSS feeds)",
+    "Create lib/news/fetcher.ts - functions to fetch articles from configured RSS feeds and news APIs, normalize them into the NewsArticle type",
+    "Create lib/news/store.ts - data persistence layer using JSON files stored in a data/ directory (for MVP; can be replaced with a database later). Functions: saveArticle, getArticles, getArticleById, getArticlesByDate, searchArticles",
+    "Create app/api/news/route.ts - GET endpoint that returns paginated, filterable news articles from the store. Query params: category, date, search, page, limit",
+    "Create app/api/news/fetch/route.ts - POST endpoint that triggers fetching new articles from all configured sources, summarizes them via AI, extracts relationships, and stores them",
+    "Create app/api/graph/route.ts - GET endpoint that returns the economic relationship graph data (nodes and edges) for the network visualization. Query params: date range, category filter",
+    "Create app/api/analysis/route.ts - GET endpoint that returns the latest daily analysis and economic pathway predictions",
+    "Create app/api/analysis/simulate/route.ts - POST endpoint that accepts a set of selected news events and returns simulated economic pathways based on those inputs",
+    "Create app/api/predictions/route.ts - GET endpoint that returns historical predictions and their accuracy scores",
+    "Create lib/news/scheduler.ts - utility that can be called by a Vercel cron job to automatically fetch and process news at regular intervals",
+    "Create vercel.json with cron job configuration to trigger news fetching every 6 hours",
+    "Update all frontend pages to fetch data from the API routes instead of mock data, with proper loading states and error handling using React hooks",
+    "Add proper error handling, rate limiting awareness, and graceful degradation when API keys are not configured (fall back to mock data)"
+  ],
+  "acceptance_criteria": [
+    "npm run build completes without errors with the API routes",
+    "API route app/api/news/route.ts returns properly formatted news data",
+    "API route app/api/graph/route.ts returns valid graph data structure",
+    "API route app/api/analysis/route.ts returns daily analysis data",
+    "API route app/api/analysis/simulate/route.ts accepts news selections and returns pathway predictions",
+    "Frontend pages connect to API routes and display data with loading states",
+    "When no API keys are configured, the app gracefully falls back to mock data",
+    "vercel.json is properly configured for deployment with cron jobs",
+    "The AI functions have proper TypeScript types and handle API errors gracefully"
+  ],
+  "verification": [
+    "Run: export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && cd /projects/sandbox/quant-feed- && npm run build",
+    "Run: export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && cd /projects/sandbox/quant-feed- && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": "rss-parser uses CommonJS require() pattern - used eslint-disable comment since the project eslintrc only extends next/core-web-vitals without @typescript-eslint plugin. API routes using request.url are properly marked with export const dynamic = 'force-dynamic' to avoid static generation issues. All API routes gracefully fall back to mock data when the JSON file store is empty or OPENAI_API_KEY is not set. Build and lint pass cleanly."
+}
