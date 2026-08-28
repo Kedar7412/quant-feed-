@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Data freshness system with recency-weighted correlation algorithm. Remove fake freshness from mock data, add clear live/cached indicators, implement exponential decay scoring for article relevance, and build a topic-tracking correlation engine that computes change velocity between old and new articles on the same economic threads.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Step 1: Create new branch `feat/elegance-overhaul` from current HEAD of `feat/3d-overhaul`.",
     "Step 2: Create `lib/freshness/recency-scorer.ts` - Implement an exponential decay freshness scoring algorithm. Articles from today get score 1.0, with half-life of ~12 hours (exponential decay). Export a `computeFreshnessScore(publishedAt: string): number` function that returns 0-1. Also export `computeRelevanceScore(article: NewsArticle): number` that combines freshness score (weight 0.5) with economicImpactScore/10 (weight 0.3) and a topic velocity bonus (weight 0.2).",
@@ -29,5 +29,5 @@
     "Run `npx next build` in /projects/sandbox/quant-feed- and confirm it completes without errors"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build passes with bun run next build. Had to use Array.from() for Set/Map iteration since tsconfig does not have downlevelIteration. Branch feat/elegance-overhaul created from feat/3d-overhaul."
 }
