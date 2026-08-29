@@ -3,11 +3,46 @@ import { getGraphData, getArticles, saveArticles, saveEdges } from "@/lib/news/s
 import { getCachedLiveNews } from "@/lib/news/live-cache";
 import { extractRelationships } from "@/lib/ai/relationship-extractor";
 import { mockGraphData, mockArticles } from "@/lib/mock-data";
-import { GraphData, NewsArticle } from "@/lib/types";
+import { GraphData, NewsArticle, EconomicNode } from "@/lib/types";
 import { computeFreshnessScore } from "@/lib/freshness/recency-scorer";
 import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
+import { isBackendEnabled, fetchGraphFromBackend } from "@/lib/backend-client";
 
 export const dynamic = "force-dynamic";
+
+// Category -> node placeholder image, mirrored between the backend-proxy branch
+// and the live-fetch enrichment below so proxied nodes look identical to today.
+const categoryPlaceholders: Record<string, string> = {
+  domestic: "https://placehold.co/120x80/1a2e1a/22c55e?text=Domestic",
+  international: "https://placehold.co/120x80/1a1a2e/3b82f6?text=Global",
+  economic: "https://placehold.co/120x80/2e2a1a/f59e0b?text=Economic",
+  political: "https://placehold.co/120x80/2e1a1a/ef4444?text=Political",
+};
+
+/**
+ * Client-side node enrichment applied AFTER data is sourced (whether from the
+ * backend proxy or the live-fetch path). The backend does not add
+ * freshnessScore/imageUrl, so we compute them here just like the live path.
+ */
+function enrichNodes(
+  nodes: EconomicNode[],
+  articleMap: Map<string, NewsArticle>
+): EconomicNode[] {
+  return nodes.map((node) => {
+    const article = articleMap.get(node.articleId);
+    return {
+      ...node,
+      freshnessScore: article
+        ? computeFreshnessScore(article.publishedAt)
+        : node.freshnessScore ?? 0,
+      url: article?.url ?? node.url,
+      imageUrl:
+        node.imageUrl ||
+        categoryPlaceholders[node.category] ||
+        "https://placehold.co/120x80/1a1a2e/6366f1?text=News",
+    };
+  });
+}
 
 export async function GET(request: Request) {
   try {
@@ -15,6 +50,46 @@ export async function GET(request: Request) {
     const category = searchParams.get("category");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const sentiment = searchParams.get("sentiment");
+    const entity = searchParams.get("entity");
+
+    // Backend-backed path (Step 1 graph/vector backbone), gated on BACKEND_URL.
+    // Proxy to FastAPI /graph/query with the same filters. On a non-empty
+    // graph, enrich nodes exactly like the live path and return preserving the
+    // existing response shape + no-store headers. On null/empty/error, fall
+    // through to the UNCHANGED live-fetch-first -> /tmp -> mock logic below.
+    if (isBackendEnabled()) {
+      try {
+        const backendGraph = await fetchGraphFromBackend({
+          category,
+          startDate,
+          endDate,
+          sentiment,
+          entity,
+        });
+        if (backendGraph && backendGraph.nodes && backendGraph.nodes.length > 0) {
+          const backendArticleMap = new Map<string, NewsArticle>();
+          const enriched: GraphData = {
+            nodes: enrichNodes(backendGraph.nodes, backendArticleMap),
+            links: backendGraph.links ?? [],
+          };
+          return NextResponse.json(
+            {
+              ...enriched,
+              correlations: backendGraph.correlations ?? [],
+              dataSource: backendGraph.dataSource ?? "live",
+            },
+            {
+              headers: {
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+              },
+            }
+          );
+        }
+      } catch (error) {
+        console.error("Backend graph proxy failed, falling back:", error);
+      }
+    }
 
     let dataSource: "live" | "cached" | "sample" = "cached";
     let graphData: GraphData = { nodes: [], links: [] };
@@ -69,28 +144,9 @@ export async function GET(request: Request) {
     }
     const articleMap = new Map(articles.map((a) => [a.id, a]));
 
-    const categoryPlaceholders: Record<string, string> = {
-      domestic: "https://placehold.co/120x80/1a2e1a/22c55e?text=Domestic",
-      international: "https://placehold.co/120x80/1a1a2e/3b82f6?text=Global",
-      economic: "https://placehold.co/120x80/2e2a1a/f59e0b?text=Economic",
-      political: "https://placehold.co/120x80/2e1a1a/ef4444?text=Political",
-    };
-
     graphData = {
       ...graphData,
-      nodes: graphData.nodes.map((node) => {
-        const article = articleMap.get(node.articleId);
-        return {
-          ...node,
-          freshnessScore: article
-            ? computeFreshnessScore(article.publishedAt)
-            : 0,
-          url: article?.url,
-          imageUrl:
-            categoryPlaceholders[node.category] ||
-            "https://placehold.co/120x80/1a1a2e/6366f1?text=News",
-        };
-      }),
+      nodes: enrichNodes(graphData.nodes, articleMap),
     };
 
     // Filter by category

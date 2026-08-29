@@ -1,0 +1,7 @@
+{
+  "task_id": "task-step1-graph-backbone",
+  "task_description": "Step 1 of the Quant Feed production roadmap: replace the ephemeral in-memory/tmp relationship computation with a durable, queryable, entity-aware graph + vector backbone. Add a Python FastAPI + Celery backend under backend/ with Neo4j (graph), Qdrant (vectors), and Postgres (relational system-of-record), an entity-aware NLP ingestion pipeline (NER + custom finance labels + OpenAI embeddings + three-axis relationship scoring with composite weight 0.35*semantic + 0.25*entity_overlap + 0.40*causal), a backfill script, a FastAPI read API (/graph/query, /articles/{id}, /health), and Next.js integration behind a BACKEND_URL flag with graceful fallback. Do NOT build the WebGL engine/WebSocket (Step 2) or Graph-RAG/billing (Step 3). Do NOT push or open PRs. Work on branch feat/step1-graph-backbone.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

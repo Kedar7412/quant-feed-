@@ -6,6 +6,14 @@ import { computeFreshnessScore, computeRelevanceScore } from "@/lib/freshness/re
 import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
 import { NewsArticle } from "@/lib/types";
 
+// NOTE (Step 1 backend integration): the FastAPI backbone currently exposes
+// only /graph/query, /articles/{id}, and /health — there is NO articles-list
+// endpoint, so a BACKEND_URL-gated proxy is not warranted for /api/news yet.
+// Only /api/graph is backend-backed for Step 1 (see app/api/graph/route.ts and
+// backend/README.md). This route keeps its live-fetch-first behavior unchanged;
+// when a backend articles-list endpoint is added in a later step, source
+// articles here behind isBackendEnabled() with the same graceful fallback.
+
 /**
  * Build a map from articleId -> its cluster's changeVelocity so relevance
  * scoring can use the real topic velocity from the correlation engine instead
