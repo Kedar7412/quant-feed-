@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from functools import lru_cache
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -21,6 +22,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     create_engine,
+    select,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.engine import Engine
@@ -149,3 +151,61 @@ def get_session() -> Iterator[Session]:
         yield session
     finally:
         session.close()
+
+
+class PostgresRelationalStore:
+    """Idempotent Postgres writer implementing the orchestrator ``RelationalStore``.
+
+    Each method upserts by natural key (article id, entity canonical name,
+    source/target article pair) so a second ingestion run does not create
+    duplicate rows.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def upsert_article(self, row: dict[str, Any]) -> None:
+        article = self._session.get(Article, row["id"])
+        if article is None:
+            article = Article(**row)
+            self._session.add(article)
+        else:
+            for key, value in row.items():
+                setattr(article, key, value)
+        self._session.commit()
+
+    def upsert_entity(self, row: dict[str, Any]) -> int:
+        stmt = select(Entity).where(Entity.name == row["name"])
+        entity = self._session.execute(stmt).scalar_one_or_none()
+        if entity is None:
+            entity = Entity(**row)
+            self._session.add(entity)
+        else:
+            entity.label = row.get("label")
+            entity.canonical = row.get("canonical")
+        self._session.commit()
+        return entity.id
+
+    def link_article_entity(self, article_id: str, entity_id: int) -> None:
+        stmt = select(ArticleEntity).where(
+            ArticleEntity.article_id == article_id,
+            ArticleEntity.entity_id == entity_id,
+        )
+        existing = self._session.execute(stmt).scalar_one_or_none()
+        if existing is None:
+            self._session.add(ArticleEntity(article_id=article_id, entity_id=entity_id))
+            self._session.commit()
+
+    def upsert_edge(self, row: dict[str, Any]) -> None:
+        stmt = select(Edge).where(
+            Edge.source_article_id == row["source_article_id"],
+            Edge.target_article_id == row["target_article_id"],
+        )
+        edge = self._session.execute(stmt).scalar_one_or_none()
+        if edge is None:
+            edge = Edge(**row)
+            self._session.add(edge)
+        else:
+            for key, value in row.items():
+                setattr(edge, key, value)
+        self._session.commit()
