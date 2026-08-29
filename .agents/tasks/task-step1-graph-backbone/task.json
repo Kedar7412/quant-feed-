@@ -1,7 +1,14 @@
 {
   "task_id": "task-step1-graph-backbone",
   "task_description": "Step 1 of the Quant Feed production roadmap: replace the ephemeral in-memory/tmp relationship computation with a durable, queryable, entity-aware graph + vector backbone. Add a Python FastAPI + Celery backend under backend/ with Neo4j (graph), Qdrant (vectors), and Postgres (relational system-of-record), an entity-aware NLP ingestion pipeline (NER + custom finance labels + OpenAI embeddings + three-axis relationship scoring with composite weight 0.35*semantic + 0.25*entity_overlap + 0.40*causal), a backfill script, a FastAPI read API (/graph/query, /articles/{id}, /health), and Next.js integration behind a BACKEND_URL flag with graceful fallback. Do NOT build the WebGL engine/WebSocket (Step 2) or Graph-RAG/billing (Step 3). Do NOT push or open PRs. Work on branch feat/step1-graph-backbone.",
-  "status": "in_progress",
+  "status": "completed",
   "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Backend: uv sync + ruff + mypy clean, 44 pytest tests pass with no live services. Frontend: bun run lint (only 2 pre-existing NetworkGraph.tsx warnings, no new errors) and bun run build both succeed with BACKEND_URL unset. Test quality: scoring tests assert exact composite-weight arithmetic (0.35/0.25/0.40) and config-weight propagation; schema_map tests assert the frontend GraphData contract incl link.strength==composite weight and category->color parity with lib/news/store.ts; graph_api tests exercise real filter/prune logic and 404/health paths that would fail if reverted. docker_build/live datastore round-trip SKIPPED: sandbox docker is podman 5.2.3 with broken rootless networking (host->container and container->container connectivity fail); documented across all feature findings and backend/README.md. Requires the user's managed Neo4j Aura + Qdrant Cloud + Postgres/Redis (or a functional Docker host) to validate the live docker-compose up + alembic upgrade head + backfill + uvicorn/curl round-trip."
+  }
 }
