@@ -220,12 +220,119 @@ export async function fetchFromNewsData(): Promise<NewsArticle[]> {
   return articles;
 }
 
+// ---- The Guardian Open Platform API Fetcher ----
+
+interface GuardianResult {
+  id: string;
+  webTitle: string;
+  webUrl: string;
+  webPublicationDate: string;
+  fields?: {
+    trailText?: string;
+    thumbnail?: string;
+    bodyText?: string;
+  };
+}
+
+interface GuardianResponse {
+  response: {
+    status: string;
+    total: number;
+    results: GuardianResult[];
+  };
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
+
+export async function fetchFromGuardian(): Promise<NewsArticle[]> {
+  const apiKey = process.env.GUARDIAN_API_KEY;
+  if (!apiKey) return [];
+
+  const baseParams =
+    "show-fields=trailText,thumbnail,bodyText&page-size=20&order-by=newest";
+
+  const endpoints = [
+    // Global business news
+    `https://content.guardianapis.com/search?section=business&${baseParams}&api-key=${apiKey}`,
+    // India economy focused
+    `https://content.guardianapis.com/search?q=${encodeURIComponent("india economy")}&${baseParams}&api-key=${apiKey}`,
+    // Indian markets focused
+    `https://content.guardianapis.com/search?q=${encodeURIComponent('RBI OR sensex OR "indian markets"')}&${baseParams}&api-key=${apiKey}`,
+  ];
+
+  const articles: NewsArticle[] = [];
+
+  const results = await Promise.allSettled(
+    endpoints.map(async (url, index) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          console.error("Guardian API error", response.status);
+          return [];
+        }
+
+        const data: GuardianResponse = await response.json();
+        // index 0 = global business, index 1+ = india focused
+        const category = index === 0 ? "international" : "economic";
+        const subcategory = index === 0 ? "International" : "Indian National";
+
+        return (data.response?.results || []).map((item): NewsArticle => {
+          const title = item.webTitle || "Untitled";
+          const trailText = item.fields?.trailText
+            ? stripHtml(item.fields.trailText)
+            : "";
+          const bodyText = item.fields?.bodyText
+            ? stripHtml(item.fields.bodyText).substring(0, 300)
+            : "";
+          const summary = trailText || bodyText || title;
+          const content = trailText || bodyText || title;
+
+          return {
+            id: generateId(),
+            title,
+            summary,
+            source: "The Guardian",
+            url: item.webUrl || "",
+            publishedAt: item.webPublicationDate
+              ? new Date(item.webPublicationDate).toISOString()
+              : new Date().toISOString(),
+            category,
+            subcategory,
+            economicImpactScore: estimateEconomicImpact(title, content),
+            tags: extractTags(title, content),
+          };
+        });
+      } catch (error) {
+        clearTimeout(timeout);
+        console.error("Guardian fetch error:", error);
+        return [];
+      }
+    })
+  );
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      articles.push(...result.value);
+    }
+  }
+
+  return articles;
+}
+
 // ---- Combined API Fetcher ----
 
 export async function fetchFromAllAPIs(): Promise<NewsArticle[]> {
   const results = await Promise.allSettled([
     fetchFromGNews(),
     fetchFromNewsData(),
+    fetchFromGuardian(),
   ]);
 
   const articles: NewsArticle[] = [];
