@@ -8,6 +8,8 @@ category->color map in ``lib/news/store.ts``.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from app.pipeline import schema_map
 from app.pipeline.models import ArticleIn, LinkedEntity, ScoredEdge
 
@@ -53,6 +55,9 @@ def test_article_row_shape() -> None:
     assert row["id"] == "art-1"
     assert row["economic_impact_score"] == 8.0
     assert row["tags"] == ["monetary policy", "inflation"]
+    # published_at is coerced to an aware datetime to match the
+    # DateTime(timezone=True) Postgres column and the read-side shape.
+    assert row["published_at"] == datetime(2026, 1, 1, tzinfo=UTC)
     assert set(row) == {
         "id",
         "title",
@@ -113,6 +118,50 @@ def test_graph_node_contract() -> None:
     # Frontend truncates long titles to 40 chars + "...".
     long_node = schema_map.graph_node(_article(title="x" * 60))
     assert long_node["label"] == "x" * 40 + "..."
+
+
+def test_node_label_appends_ellipsis_unconditionally() -> None:
+    """Matches lib/news/store.ts: `title.substring(0,40) + "..."` always.
+
+    A short title still gets "..." so proxied nodes are byte-identical to the
+    fallback nodes for the same title (review issue #8).
+    """
+    short = schema_map.graph_node(_article(title="Short headline"))
+    assert short["label"] == "Short headline..."
+
+
+def test_parse_published_at_aware_string() -> None:
+    dt = schema_map.parse_published_at("2026-01-01T12:30:00+00:00")
+    assert dt == datetime(2026, 1, 1, 12, 30, tzinfo=UTC)
+    assert dt.tzinfo is not None
+
+
+def test_parse_published_at_z_suffix() -> None:
+    dt = schema_map.parse_published_at("2026-03-15T08:00:00Z")
+    assert dt == datetime(2026, 3, 15, 8, 0, tzinfo=UTC)
+    assert dt.tzinfo is not None
+
+
+def test_parse_published_at_naive_assumed_utc() -> None:
+    """A naive ISO string is treated as UTC so the aware column never gets a
+    naive value (which would raise or silently localize against a real DB)."""
+    dt = schema_map.parse_published_at("2026-01-01T00:00:00")
+    assert dt == datetime(2026, 1, 1, tzinfo=UTC)
+    assert dt.tzinfo is not None
+
+
+def test_parse_published_at_invalid_falls_back_to_now() -> None:
+    dt = schema_map.parse_published_at("not-a-date")
+    assert dt.tzinfo is not None  # always aware
+
+
+def test_article_row_published_at_is_aware_datetime() -> None:
+    """The value handed to the DateTime(timezone=True) column is aware, keeping
+    the write side symmetric with the read side (review issue #5)."""
+    row = schema_map.article_row(_article(published_at="2026-05-05T10:00:00Z"))
+    assert isinstance(row["published_at"], datetime)
+    assert row["published_at"].tzinfo is not None
+    assert row["published_at"] == datetime(2026, 5, 5, 10, 0, tzinfo=UTC)
 
 
 def test_graph_link_strength_equals_composite_weight() -> None:

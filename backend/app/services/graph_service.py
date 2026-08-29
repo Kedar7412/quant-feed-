@@ -1,8 +1,19 @@
 """Read-side graph service.
 
-Serves the persisted backbone (Postgres system-of-record, with Neo4j
-``RELATES_TO`` as an equivalent edge source) as the exact ``GraphData`` contract
-the Next.js frontend already consumes.
+Serves the persisted backbone as the exact ``GraphData`` contract the Next.js
+frontend already consumes.
+
+Persistence topology (Step 1)
+-----------------------------
+Ingestion dual-writes every scored edge to Postgres (``Edge``) and Neo4j
+(``[:RELATES_TO]``). For Step 1 the read path is **Postgres-only**:
+``PostgresReadStore`` is the sole concrete ``GraphReadStore`` and reads edges
+exclusively from the Postgres ``Edge`` table. The Neo4j ``RELATES_TO`` write is
+deliberate forward-investment for a later Graph-RAG / multi-hop traversal step
+and is intentionally NOT read here. Because nothing reads Neo4j edges in Step 1,
+a Neo4j upsert that fails after a successful Postgres commit cannot cause a
+read-visible divergence: the graph query is authoritatively Postgres-backed.
+Do not assume ``GET /graph/query`` is Neo4j-backed.
 
 Design
 ------
@@ -174,10 +185,15 @@ def filter_articles(
       ``None`` is a no-op).
     - ``start_date``/``end_date``: keep articles whose ``published_at`` falls in
       the inclusive range.
-    - ``sentiment`` (``positive``/``negative``/``neutral``): derived from the
-      article's ``economic_impact_score`` (>=7 positive, <=3 negative, else
-      neutral) so the filter measurably narrows the set without a dedicated
-      column.
+    - ``sentiment`` (``positive``/``negative``/``neutral``): a Step-1
+      APPROXIMATION derived from the article's ``economic_impact_score`` (>=7
+      positive, <=3 negative, else neutral). There is no real sentiment signal
+      in the domain model yet, so this reuses economic impact as a proxy; a
+      high-impact market crash therefore reads as "positive" here. The frontend
+      fallback path (``app/api/graph/route.ts``) mirrors this exact derivation
+      on ``economicImpactScore`` so the same ``sentiment=`` query narrows the
+      graph identically whether or not ``BACKEND_URL`` is set. Replace with a
+      dedicated sentiment column once a real signal exists.
     - ``entity``: keep articles that mention the given entity (case-insensitive
       match against the article's linked entities in ``entities_by_article``).
     """

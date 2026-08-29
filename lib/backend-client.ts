@@ -14,6 +14,13 @@ import { GraphData, TopicCorrelation } from "@/lib/types";
 /** Request timeout for backend proxy calls (ms). Kept short to fail fast. */
 const BACKEND_TIMEOUT_MS = 4000;
 
+/**
+ * Timeout for the /health pre-check (ms). Much shorter than the graph timeout
+ * so a reachable-but-slow or down backend costs at most this budget before we
+ * fall back, instead of the full BACKEND_TIMEOUT_MS on every /api/graph request.
+ */
+const BACKEND_HEALTH_TIMEOUT_MS = 800;
+
 /** Shape returned by GET {BACKEND_URL}/graph/query (matches /api/graph). */
 export interface BackendGraphResponse extends GraphData {
   correlations?: TopicCorrelation[];
@@ -42,12 +49,51 @@ export function isBackendEnabled(): boolean {
 }
 
 /**
+ * Short-timeout health gate. Returns `true` only when GET {BACKEND_URL}/health
+ * responds 2xx within {@link BACKEND_HEALTH_TIMEOUT_MS}. Any other outcome
+ * (disabled, non-2xx, timeout, network error, bad JSON) returns `false` so the
+ * caller skips the proxy and falls back immediately.
+ *
+ * This bounds the worst-case fallback latency: a reachable-but-slow or down
+ * backend costs at most the health budget (default 800ms) instead of the full
+ * graph timeout (4s) on every request. Never throws. Note the backend /health
+ * is best-effort and returns 200 even when a datastore is "degraded"; we treat
+ * any 2xx as "proceed to proxy" and rely on the graph call's own null/empty
+ * fallback for the degraded case.
+ */
+export async function pingBackendHealthy(): Promise<boolean> {
+  const base = backendBaseUrl();
+  if (!base) return false;
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    BACKEND_HEALTH_TIMEOUT_MS
+  );
+  try {
+    const res = await fetch(`${base}/health`, {
+      signal: controller.signal,
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    return res.ok;
+  } catch (error) {
+    console.error("Backend health check failed, falling back:", error);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Perform a GET against the backend with an AbortController timeout, returning
  * parsed JSON or `null` on any failure. Never throws.
  */
-async function safeGetJson<T>(url: string): Promise<T | null> {
+async function safeGetJson<T>(
+  url: string,
+  timeoutMs: number = BACKEND_TIMEOUT_MS
+): Promise<T | null> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
       signal: controller.signal,

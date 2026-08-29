@@ -18,6 +18,7 @@ FEAT-003 (the FastAPI read API) should reuse ``build_graph_data`` to serve
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 from app.pipeline.models import ArticleIn, LinkedEntity, ScoredEdge
@@ -39,8 +40,13 @@ def category_color(category: str) -> str:
 
 
 def _node_label(title: str) -> str:
-    """Truncated label for a graph node (mirrors the frontend `.substring(0,40)`)."""
-    return title[:40] + "..." if len(title) > 40 else title
+    """Truncated label for a graph node.
+
+    Matches ``lib/news/store.ts`` exactly, which appends ``"..."``
+    unconditionally: ``article.title.substring(0, 40) + "..."``. This keeps
+    proxied nodes byte-identical to fallback nodes for the same title.
+    """
+    return title[:40] + "..."
 
 
 # --------------------------------------------------------------------------- #
@@ -48,15 +54,40 @@ def _node_label(title: str) -> str:
 # --------------------------------------------------------------------------- #
 
 
+def parse_published_at(value: str) -> datetime:
+    """Coerce an ISO ``published_at`` string into an aware ``datetime``.
+
+    ``ArticleIn.published_at`` is an ISO string (matching the frontend
+    ``publishedAt``), but the Postgres ``Article.published_at`` column is
+    ``DateTime(timezone=True)``. Writing the raw string relies on driver-level
+    string->timestamp coercion, which is fragile and untested against a live DB.
+    Parsing here makes the write side symmetric with ``_article_from_row`` on the
+    read side (which emits ``datetime.isoformat()``): a naive datetime is assumed
+    UTC, and an unparseable value falls back to "now" (UTC).
+    """
+    text = (value or "").strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return datetime.now(UTC)
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+
+
 def article_row(article: ArticleIn) -> dict[str, Any]:
-    """Map an ``ArticleIn`` to keyword args for the Postgres ``Article`` model."""
+    """Map an ``ArticleIn`` to keyword args for the Postgres ``Article`` model.
+
+    ``published_at`` is coerced from the ISO string to an aware ``datetime`` so
+    it matches the ``DateTime(timezone=True)`` column and the read-side shape.
+    """
     return {
         "id": article.id,
         "title": article.title,
         "summary": article.summary,
         "source": article.source,
         "url": article.url,
-        "published_at": article.published_at,
+        "published_at": parse_published_at(article.published_at),
         "category": article.category,
         "subcategory": article.subcategory,
         "economic_impact_score": article.economic_impact_score,

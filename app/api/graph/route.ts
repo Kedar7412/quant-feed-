@@ -6,7 +6,11 @@ import { mockGraphData, mockArticles } from "@/lib/mock-data";
 import { GraphData, NewsArticle, EconomicNode } from "@/lib/types";
 import { computeFreshnessScore } from "@/lib/freshness/recency-scorer";
 import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
-import { isBackendEnabled, fetchGraphFromBackend } from "@/lib/backend-client";
+import {
+  isBackendEnabled,
+  fetchGraphFromBackend,
+  pingBackendHealthy,
+} from "@/lib/backend-client";
 
 export const dynamic = "force-dynamic";
 
@@ -54,11 +58,15 @@ export async function GET(request: Request) {
     const entity = searchParams.get("entity");
 
     // Backend-backed path (Step 1 graph/vector backbone), gated on BACKEND_URL.
-    // Proxy to FastAPI /graph/query with the same filters. On a non-empty
-    // graph, enrich nodes exactly like the live path and return preserving the
-    // existing response shape + no-store headers. On null/empty/error, fall
-    // through to the UNCHANGED live-fetch-first -> /tmp -> mock logic below.
-    if (isBackendEnabled()) {
+    // A short /health pre-check runs first: a reachable-but-slow or down backend
+    // costs at most the health budget (~800ms) instead of the full 4s graph
+    // timeout on every request before falling back. Only when /health responds
+    // 2xx in time do we proxy to /graph/query with the same filters. On a
+    // non-empty graph, enrich nodes exactly like the live path and return
+    // preserving the existing response shape + no-store headers. On
+    // unhealthy/null/empty/error, fall through to the UNCHANGED live-fetch-first
+    // -> /tmp -> mock logic below.
+    if (isBackendEnabled() && (await pingBackendHealthy())) {
       try {
         const backendGraph = await fetchGraphFromBackend({
           category,
@@ -172,6 +180,26 @@ export async function GET(request: Request) {
         return true;
       });
 
+      const nodeIds = new Set(filteredNodes.map((n) => n.id));
+      const filteredLinks = graphData.links.filter(
+        (l) => nodeIds.has(l.source as string) && nodeIds.has(l.target as string)
+      );
+      graphData = { nodes: filteredNodes, links: filteredLinks };
+    }
+
+    // Filter by sentiment (Step-1 approximation, symmetric with the backend).
+    // There is no real sentiment signal yet, so both the backend
+    // (services/graph_service.py) and this fallback derive it from the node's
+    // economicImpactScore: >=7 positive, <=3 negative, else neutral. Keeping the
+    // derivation identical means `?sentiment=` narrows the graph the same way
+    // whether or not BACKEND_URL is set.
+    if (sentiment) {
+      const filteredNodes = graphData.nodes.filter((node) => {
+        const score = node.economicImpactScore ?? node.val ?? 5;
+        const derived =
+          score >= 7 ? "positive" : score <= 3 ? "negative" : "neutral";
+        return derived === sentiment;
+      });
       const nodeIds = new Set(filteredNodes.map((n) => n.id));
       const filteredLinks = graphData.links.filter(
         (l) => nodeIds.has(l.source as string) && nodeIds.has(l.target as string)

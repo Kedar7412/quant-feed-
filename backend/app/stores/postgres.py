@@ -159,10 +159,32 @@ class PostgresRelationalStore:
     Each method upserts by natural key (article id, entity canonical name,
     source/target article pair) so a second ingestion run does not create
     duplicate rows.
+
+    Commit granularity
+    ------------------
+    Set ``autocommit=True`` (the default) to commit after every upsert, which
+    keeps single-write callers simple. For a backfill at scale, pass
+    ``autocommit=False`` so each write only ``flush``es (assigning autoincrement
+    ids while staying in one transaction) and the caller invokes
+    :meth:`commit` once per article or per run, collapsing thousands of tiny
+    transactions into a handful. Either way the natural-key upserts remain
+    idempotent.
     """
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, autocommit: bool = True) -> None:
         self._session = session
+        self._autocommit = autocommit
+
+    def _sync(self) -> None:
+        """Commit when autocommitting, else flush to assign ids within the txn."""
+        if self._autocommit:
+            self._session.commit()
+        else:
+            self._session.flush()
+
+    def commit(self) -> None:
+        """Commit the current transaction (used when ``autocommit=False``)."""
+        self._session.commit()
 
     def upsert_article(self, row: dict[str, Any]) -> None:
         article = self._session.get(Article, row["id"])
@@ -172,7 +194,7 @@ class PostgresRelationalStore:
         else:
             for key, value in row.items():
                 setattr(article, key, value)
-        self._session.commit()
+        self._sync()
 
     def upsert_entity(self, row: dict[str, Any]) -> int:
         stmt = select(Entity).where(Entity.name == row["name"])
@@ -183,7 +205,7 @@ class PostgresRelationalStore:
         else:
             entity.label = row.get("label")
             entity.canonical = row.get("canonical")
-        self._session.commit()
+        self._sync()
         return entity.id
 
     def link_article_entity(self, article_id: str, entity_id: int) -> None:
@@ -194,7 +216,7 @@ class PostgresRelationalStore:
         existing = self._session.execute(stmt).scalar_one_or_none()
         if existing is None:
             self._session.add(ArticleEntity(article_id=article_id, entity_id=entity_id))
-            self._session.commit()
+            self._sync()
 
     def upsert_edge(self, row: dict[str, Any]) -> None:
         stmt = select(Edge).where(
@@ -208,4 +230,4 @@ class PostgresRelationalStore:
         else:
             for key, value in row.items():
                 setattr(edge, key, value)
-        self._session.commit()
+        self._sync()
