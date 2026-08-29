@@ -165,13 +165,13 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     const ambient = new THREE.AmbientLight(0x404060, 0.6);
     scene.add(ambient);
 
-    // Point light (indigo tone)
-    const pointLight1 = new THREE.PointLight(0x6366f1, 1.5, 500);
+    // Point light (lime tone)
+    const pointLight1 = new THREE.PointLight(0xa3e635, 1.5, 500);
     pointLight1.position.set(100, 100, 100);
     scene.add(pointLight1);
 
-    // Point light (purple tone)
-    const pointLight2 = new THREE.PointLight(0x8b5cf6, 1.0, 400);
+    // Point light (emerald tone)
+    const pointLight2 = new THREE.PointLight(0x4ade80, 1.0, 400);
     pointLight2.position.set(-100, -50, -100);
     scene.add(pointLight2);
 
@@ -354,7 +354,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
     const source = node.source || "Unknown Source";
 
     return `
-      <div style="background: rgba(15,15,25,0.95); border: 1px solid rgba(99,102,241,0.3); border-radius: 8px; padding: 10px 14px; max-width: 280px; font-family: system-ui, sans-serif; backdrop-filter: blur(8px);">
+      <div style="background: rgba(15,15,25,0.95); border: 1px solid rgba(163,230,53,0.25); border-radius: 8px; padding: 10px 14px; max-width: 280px; font-family: system-ui, sans-serif; backdrop-filter: blur(8px);">
         <div style="font-size: 12px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; line-height: 1.3;">${truncTitle}</div>
         <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
           <span style="font-size: 10px; color: #94a3b8;">${source}</span>
@@ -368,7 +368,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
   // Edge color - highlight connected edges
   const linkColor = useCallback(
     (link: any) => {
-      if (!selectedNode) return "rgba(99, 102, 241, 0.25)";
+      if (!selectedNode) return "rgba(163, 230, 53, 0.2)";
       const sourceId =
         typeof link.source === "string" ? link.source : (link.source as any).id;
       const targetId =
@@ -376,10 +376,10 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
       const edgeKey = `${sourceId}-${targetId}`;
       if (connectedEdges.has(edgeKey)) {
         const nodeColor =
-          categoryColors[selectedNode.category] || "#6366f1";
+          categoryColors[selectedNode.category] || "#a3e635";
         return nodeColor;
       }
-      return "rgba(99, 102, 241, 0.08)";
+      return "rgba(163, 230, 53, 0.06)";
     },
     [selectedNode, connectedEdges]
   );
@@ -418,7 +418,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
   const nodeThreeObject = useCallback(
     (node: any) => {
       const category = node.category || "domestic";
-      const color = categoryColors[category] || "#6366f1";
+      const color = categoryColors[category] || "#a3e635";
       const freshness = node.freshnessScore || 0;
       const size = (node.val || 5) * 1.2 + 3;
 
@@ -585,7 +585,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
         linkDirectionalParticles={4}
         linkDirectionalParticleWidth={1.5}
         linkDirectionalParticleSpeed={0.005}
-        linkDirectionalParticleColor={() => "#818cf8"}
+        linkDirectionalParticleColor={() => "#a3e635"}
         linkOpacity={0.6}
         onNodeClick={handleNodeClick}
         cooldownTicks={100}
@@ -599,7 +599,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
           <div
             className="glass-strong rounded-xl overflow-hidden"
             style={{
-              border: `1px solid ${categoryColors[selectedNode.category] || "#6366f1"}40`,
+              border: `1px solid ${categoryColors[selectedNode.category] || "#a3e635"}40`,
             }}
           >
             {/* Freshness indicator bar at top */}
@@ -628,7 +628,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
                 <div
                   className="shrink-0 w-[120px] h-[80px] rounded-lg overflow-hidden"
                   style={{
-                    border: `1px solid ${categoryColors[selectedNode.category] || "#6366f1"}30`,
+                    border: `1px solid ${categoryColors[selectedNode.category] || "#a3e635"}30`,
                   }}
                 >
                   {selectedArticle.imageUrl && !imageError ? (
@@ -641,13 +641,13 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
                     />
                   ) : (
                     <div
-                      className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${categoryGradients[selectedNode.category] || "from-indigo-500/20 to-indigo-900/40"}`}
+                      className={`h-full w-full flex items-center justify-center bg-gradient-to-br ${categoryGradients[selectedNode.category] || "from-lime/20 to-emerald/40"}`}
                     >
                       <span
                         className="text-xs font-semibold capitalize"
                         style={{
                           color:
-                            categoryColors[selectedNode.category] || "#6366f1",
+                            categoryColors[selectedNode.category] || "#a3e635",
                         }}
                       >
                         {selectedNode.category}
@@ -710,7 +710,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
                   {/* Impact + Tags */}
                   <div className="flex items-center gap-2 flex-wrap">
                     {selectedArticle.economicImpactScore && (
-                      <span className="text-[10px] text-indigo-400 font-medium bg-indigo-400/10 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] text-lime font-medium bg-lime/10 px-1.5 py-0.5 rounded">
                         <Zap className="h-2.5 w-2.5 inline mr-0.5" />
                         Impact: {selectedArticle.economicImpactScore}/10
                       </span>
@@ -734,7 +734,7 @@ export function NetworkGraph({ graphData }: NetworkGraphProps) {
                       href={selectedArticle.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-lime hover:bg-lime-soft text-black text-xs font-medium rounded-lg transition-colors"
                     >
                       <ExternalLink className="h-3 w-3" />
                       Visit Article

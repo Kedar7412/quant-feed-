@@ -57,7 +57,7 @@ export function DailySummary({ summary }: DailySummaryProps) {
       {/* Key Takeaways */}
       <div>
         <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-          <span className="h-1 w-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" />
+          <span className="h-1 w-4 bg-gradient-to-r from-lime to-emerald rounded-full" />
           Key Takeaways
         </h3>
         <ul className="space-y-2.5">
@@ -69,10 +69,10 @@ export function DailySummary({ summary }: DailySummaryProps) {
               transition={{ delay: idx * 0.1, duration: 0.4 }}
               className="flex items-start gap-3 text-sm text-gray-400 pl-1"
             >
-              <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 mt-0.5">
+              <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-md bg-lime/10 border border-lime/20 text-[10px] font-bold text-lime mt-0.5">
                 {idx + 1}
               </span>
-              <span className="border-l border-indigo-500/20 pl-3 leading-relaxed">{takeaway}</span>
+              <span className="border-l border-lime/20 pl-3 leading-relaxed">{takeaway}</span>
             </motion.li>
           ))}
         </ul>
@@ -81,7 +81,7 @@ export function DailySummary({ summary }: DailySummaryProps) {
       {/* Economic Indicators */}
       <div>
         <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-          <span className="h-1 w-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" />
+          <span className="h-1 w-4 bg-gradient-to-r from-lime to-emerald rounded-full" />
           Economic Indicators
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

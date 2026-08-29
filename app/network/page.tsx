@@ -21,7 +21,7 @@ export default function NetworkPage() {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Network className="h-6 w-6 text-indigo-400" />
+            <Network className="h-6 w-6 text-lime" />
             Network Graph
           </h1>
           <p className="text-sm text-gray-400 mt-1">
@@ -75,7 +75,7 @@ export default function NetworkPage() {
               {[...Array(6)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className="absolute w-1 h-1 rounded-full bg-indigo-400/20"
+                  className="absolute w-1 h-1 rounded-full bg-lime/20"
                   style={{
                     left: `${15 + i * 15}%`,
                     top: `${20 + (i % 3) * 25}%`,

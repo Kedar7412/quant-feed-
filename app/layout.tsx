@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,14 +36,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
-      <body className={`${inter.className} antialiased min-h-screen bg-dark-900`}>
-        <div className="noise-overlay" />
+      <body className={`${inter.className} antialiased min-h-screen bg-dark-900 text-foreground`}>
         <div className="gradient-mesh" />
         <div className="relative flex h-screen overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-            {children}
-          </main>
+          <div className="flex-1 flex flex-col min-w-0">
+            <TopBar />
+            <main className="flex-1 overflow-y-auto px-5 pb-6 pt-4 lg:px-8 lg:pb-8">
+              {children}
+            </main>
+          </div>
         </div>
       </body>
     </html>

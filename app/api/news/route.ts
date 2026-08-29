@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getArticles, saveArticles, searchArticles, getArticlesByDate, getLastFetchTimestamp, setLastFetchTimestamp } from "@/lib/news/store";
-import { fetchLiveNews } from "@/lib/news/fetcher";
+import { getArticles, saveArticles } from "@/lib/news/store";
+import { getCachedLiveNews } from "@/lib/news/live-cache";
 import { mockArticles } from "@/lib/mock-data";
 import { computeFreshnessScore, computeRelevanceScore } from "@/lib/freshness/recency-scorer";
 import { buildTopicCorrelations } from "@/lib/freshness/topic-tracker";
@@ -50,9 +50,6 @@ function scoreArticles(
 
 export const dynamic = "force-dynamic";
 
-// Minimum interval between live fetches (30 minutes in ms)
-const FETCH_INTERVAL_MS = 30 * 60 * 1000;
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -66,73 +63,64 @@ export async function GET(request: Request) {
     // Track data source
     let dataSource: "live" | "cached" | "sample" = "cached";
 
-    // Always attempt live fetch if enough time has passed since last fetch
-    let articles = getArticles();
-    const lastFetch = getLastFetchTimestamp();
-    const now = Date.now();
-    const shouldFetch = !lastFetch || (now - lastFetch) > FETCH_INTERVAL_MS;
-
-    if (shouldFetch) {
-      try {
-        const liveArticles = await fetchLiveNews();
-        if (liveArticles.length > 0) {
+    // Live-fetch-first: fetch fresh news on the request path, backed by a
+    // short-lived in-process cache (see lib/news/live-cache.ts) so feeds are
+    // not hammered. We do NOT gate on a /tmp timestamp because /tmp is
+    // ephemeral on Vercel serverless and cannot be relied on for freshness.
+    let articles: NewsArticle[] = [];
+    try {
+      const liveArticles = await getCachedLiveNews();
+      if (liveArticles.length > 0) {
+        articles = liveArticles;
+        dataSource = "live";
+        // Best-effort persist to /tmp for cross-request reuse within a warm
+        // instance. Never depend on this succeeding or surviving a cold start.
+        try {
           saveArticles(liveArticles);
-          setLastFetchTimestamp(now);
-          // Re-read merged articles from store
-          articles = getArticles();
-          dataSource = "live";
+        } catch (persistError) {
+          console.error("Best-effort saveArticles failed:", persistError);
         }
-      } catch (error) {
-        console.error("Live fetch failed, using cached/mock data:", error);
+      }
+    } catch (error) {
+      console.error("Live fetch failed, falling back to cache/mock:", error);
+    }
+
+    // If live fetch was empty, try any best-effort /tmp cache before sample.
+    if (articles.length === 0) {
+      const cached = getArticles();
+      if (cached.length > 0) {
+        articles = cached;
+        dataSource = "cached";
       }
     }
 
-    // If we got articles from the store (not fresh fetch), mark as cached
-    if (articles.length > 0 && dataSource !== "live") {
-      dataSource = "cached";
-    }
-
-    // Fall back to mock data if store is still empty
+    // Fall back to mock data only when both live fetch AND /tmp are empty.
     if (articles.length === 0) {
       articles = mockArticles;
       dataSource = "sample";
     }
 
-    // Whether a live fetch actually populated results this request. Store hits
-    // returned from search/date filters are cached, not live, so they must not
-    // inherit a live flag they didn't earn.
+    // Whether a live fetch actually populated results this request. Cached
+    // (/tmp) or sample results must not inherit a live flag they didn't earn.
     const liveThisRequest = dataSource === "live";
 
     // Compute freshness and relevance scores for all articles
     articles = scoreArticles(articles, liveThisRequest);
 
-    // Apply filters
+    // Apply filters (search/date/category) against the in-memory article set so
+    // filtering works uniformly for live, cached, and sample data.
     if (search) {
-      const searchResults = searchArticles(search);
-      if (searchResults.length > 0) {
-        // Store-backed search hits are cached unless they already carry a live
-        // flag; do not relabel them based on this request's outer dataSource.
-        articles = scoreArticles(searchResults, false);
-      } else {
-        // Fallback search on current articles array
-        const lowerSearch = search.toLowerCase();
-        articles = articles.filter(
-          (a) =>
-            a.title.toLowerCase().includes(lowerSearch) ||
-            a.summary.toLowerCase().includes(lowerSearch) ||
-            a.tags.some((t) => t.toLowerCase().includes(lowerSearch))
-        );
-      }
+      const lowerSearch = search.toLowerCase();
+      articles = articles.filter(
+        (a) =>
+          a.title.toLowerCase().includes(lowerSearch) ||
+          a.summary.toLowerCase().includes(lowerSearch) ||
+          a.tags.some((t) => t.toLowerCase().includes(lowerSearch))
+      );
     }
 
     if (date) {
-      const dateArticles = getArticlesByDate(date);
-      if (dateArticles.length > 0) {
-        // Store-backed date hits are cached unless already flagged live.
-        articles = scoreArticles(dateArticles, false);
-      } else {
-        articles = articles.filter((a) => a.publishedAt.startsWith(date));
-      }
+      articles = articles.filter((a) => a.publishedAt.startsWith(date));
     }
 
     if (category && category !== "all") {

@@ -48,7 +48,7 @@ export default function PredictionsPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-indigo-400" />
+            <TrendingUp className="h-6 w-6 text-lime" />
             Predictions
           </h1>
           <p className="text-sm text-gray-400 mt-1">
@@ -75,7 +75,7 @@ export default function PredictionsPage() {
           className="grid grid-cols-2 md:grid-cols-5 gap-4"
         >
           <div className="glass-premium rounded-xl p-4 hover:shadow-glow-sm transition-shadow duration-300">
-            <Target className="h-5 w-5 text-indigo-400 mb-2" />
+            <Target className="h-5 w-5 text-lime mb-2" />
             <p className="text-2xl font-bold text-white">{metrics.total}</p>
             <p className="text-xs text-gray-500">Total Predictions</p>
           </div>
@@ -112,7 +112,7 @@ export default function PredictionsPage() {
             onClick={() => setFilter(status)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               filter === status
-                ? "glass-premium text-indigo-300 shadow-glow-sm"
+                ? "bg-lime/15 border border-lime/40 text-lime"
                 : "glass text-gray-400 hover:text-gray-200"
             }`}
           >
@@ -194,7 +194,7 @@ export default function PredictionsPage() {
                     </h3>
                     <p className="text-xs text-gray-400 leading-relaxed">{prediction.description}</p>
                     {prediction.outcome && (
-                      <p className="text-xs text-gray-300 mt-2 p-2.5 glass-premium rounded-lg border-l-2 border-indigo-500">
+                      <p className="text-xs text-gray-300 mt-2 p-2.5 glass-premium rounded-lg border-l-2 border-lime">
                         Outcome: {prediction.outcome}
                       </p>
                     )}
@@ -225,8 +225,8 @@ export default function PredictionsPage() {
                         />
                         <defs>
                           <linearGradient id="confidence-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#6366f1" />
-                            <stop offset="100%" stopColor="#a855f7" />
+                            <stop offset="0%" stopColor="#a3e635" />
+                            <stop offset="100%" stopColor="#4ade80" />
                           </linearGradient>
                         </defs>
                       </svg>

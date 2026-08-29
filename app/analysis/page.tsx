@@ -28,7 +28,7 @@ export default function AnalysisPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Brain className="h-6 w-6 text-indigo-400" />
+            <Brain className="h-6 w-6 text-lime" />
             AI Analysis
           </h1>
           <p className="text-sm text-gray-400 mt-1">
@@ -40,7 +40,7 @@ export default function AnalysisPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
+          <Loader2 className="h-6 w-6 text-lime animate-spin" />
           <span className="ml-2 text-sm text-gray-400">Loading analysis...</span>
         </div>
       ) : (
@@ -72,7 +72,7 @@ export default function AnalysisPage() {
                 transition={{ delay: 0.3 }}
                 className="glass rounded-lg p-4"
               >
-                <h3 className="text-xs font-semibold text-indigo-400 mb-2">
+                <h3 className="text-xs font-semibold text-lime mb-2">
                   Key Takeaways
                 </h3>
                 <ul className="space-y-1.5 text-xs text-gray-400">

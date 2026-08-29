@@ -35,7 +35,7 @@ export function TopicCorrelationsPanel({
       className="glass-premium rounded-xl p-4 w-full"
     >
       <div className="flex items-center gap-2 mb-3">
-        <Activity className="h-4 w-4 text-indigo-400" />
+        <Activity className="h-4 w-4 text-lime" />
         <h3 className="text-sm font-semibold text-white">Trending Threads</h3>
         <span className="text-[10px] text-gray-500 ml-auto">
           {correlations.length} correlated {correlations.length === 1 ? "topic" : "topics"}

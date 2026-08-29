@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Environment setup and baseline. Install dependencies and confirm the existing project builds and lints cleanly BEFORE making changes, so later regressions are attributable. This is a Next.js 14 TypeScript app with no test suite; baseline = lint + build green.",
+  "status": "completed",
+  "steps": [
+    "From the repo root /projects/sandbox/quant-feed- run 'npm install' (bun.lock exists but npm is fine; if npm has peer conflicts, fall back to 'bun install').",
+    "Run 'npm run lint' and record the result. If there are pre-existing lint warnings/errors, note them so new work is distinguishable.",
+    "Run 'npm run build' and confirm it completes without type errors. Record the output summary.",
+    "Confirm the current git branch is 'feat/design-and-live-data' (already created by the orchestrator). Do NOT switch branches, push, or open PRs.",
+    "Record the current system date (run 'date -u') in findings so subsequent features can validate 'freshness' against the real current date."
+  ],
+  "acceptance_criteria": [
+    "'npm install' completes and node_modules is populated.",
+    "'npm run build' completes successfully with no TypeScript errors.",
+    "'npm run lint' result is recorded (pass, or a documented list of any pre-existing issues).",
+    "findings field records the baseline build/lint status and the current UTC date."
+  ],
+  "verification": [
+    "npm run lint",
+    "npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": "BASELINE ESTABLISHED (green). Current UTC date recorded via 'date -u': Fri Aug 28 06:15:53 PM UTC 2026 (i.e. 2026-08-28). Subsequent freshness work should validate article publishedAt against ~2026-08-28, NOT the stale 2024-12 dates hardcoded in lib/mock-data.ts.\n\nENVIRONMENT NOTE (retryable setup step for later features): node/npm are NOT on the default PATH. They live at /root/.nvm/versions/node/v22.23.2/bin. Prefix commands with 'export PATH=\"/root/.nvm/versions/node/v22.23.2/bin:$PATH\"' before running npm/node/next. node v22.23.2, npm 11.4.2. bun 1.2.14 is on PATH at /root/.local/share/mise/shims/bun as a fallback.\n\n'npm install' completed successfully: added 34 / removed 20 / changed 27 packages, 598 audited, node_modules populated (439 entries). npm reported 5 high severity vulnerabilities (pre-existing, not addressed - out of scope for this feature). Note: 'npm install' modified package-lock.json (M package-lock.json) - this is a lockfile refresh, committed as part of baseline.\n\n'npm run lint' (next lint): PASSES with 0 errors and 2 PRE-EXISTING WARNINGS, both in components/NetworkGraph.tsx: (1) line 415:6 react-hooks/exhaustive-deps - useMemo has unnecessary deps 'connectedNodeIds','filteredData','selectedNode'; (2) line 635:21 @next/next/no-img-element - using <img> instead of next/image. These are the baseline; any NEW lint issues introduced by FEAT-002/FEAT-003 are attributable.\n\n'npm run build' (next build, Next.js 14.2.35): SUCCEEDS. Compiled successfully, types valid, 11/11 static pages generated. API routes (/api/news, /api/graph, /api/analysis, /api/predictions, /api/cron, etc.) render as Dynamic (server-rendered on demand, force-dynamic) = 0 B. Pages: / (3.52kB), /analysis, /network (92kB), /news, /predictions all built. No TypeScript errors.\n\nGit: on branch feat/design-and-live-data as expected. Did NOT switch branches, push, or open PRs."
+}
