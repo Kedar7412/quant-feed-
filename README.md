@@ -47,6 +47,20 @@ lib/                    # Utilities and data
   mock-data.ts          # Development mock data
 ```
 
+## Backend: Graph/Vector Backbone (Step 1)
+
+An optional Python **FastAPI + Celery** backend provides a durable, queryable,
+entity-aware graph + vector backbone (Neo4j + Qdrant + Postgres) that can serve
+the network graph in place of the built-in live-fetch computation. It lives in
+[`backend/`](./backend) — see [`backend/README.md`](./backend/README.md) for
+local dev, backfill, environment variables, and production deployment
+(Neo4j Aura / Qdrant Cloud / Railway·Render·Fly.io).
+
+Integration is opt-in and safe: set `BACKEND_URL` on the frontend to proxy
+`/api/graph` to the backend. When it is unset (or the backend is unreachable),
+the frontend falls back to its existing live-fetch behavior, so the deployed
+prototype never breaks.
+
 ## Getting Started
 
 ### Prerequisites
