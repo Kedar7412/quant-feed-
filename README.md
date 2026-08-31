@@ -61,6 +61,48 @@ Integration is opt-in and safe: set `BACKEND_URL` on the frontend to proxy
 the frontend falls back to its existing live-fetch behavior, so the deployed
 prototype never breaks.
 
+## Step 2: custom WebGL engine + real-time WS diffs
+
+Step 2 replaces the prototype's `react-force-graph-3d` network view with a
+custom **React Three Fiber / Three.js** engine and adds an optional real-time
+graph stream. The architecture:
+
+- **Instanced WebGL engine** — nodes render as a single `InstancedMesh` (one
+  draw call) backed by pre-allocated typed-array scene buffers in a vanilla
+  Zustand store (`lib/graph3d/`). Each node owns a stable "slot"; a free-list
+  recycles slots on removal so filter churn never leaks capacity (the prototype
+  leaked here). A DOM HUD overlays the canvas.
+- **Web-worker force sim** — `d3-force-3d` runs in a Web Worker
+  (`lib/graph3d/forceWorker.worker.ts`); tick positions are scattered into the
+  shared position buffer off the React render path.
+- **Zustand outside React** — the store is created with `zustand/vanilla` so the
+  render loop and worker mutate scene buffers imperatively without triggering
+  React re-renders; only the HUD subscribes to selector slices.
+- **Real-time WS diffs (optional)** — a FastAPI WebSocket gateway
+  (`/ws/graph`, backend `app/routers/ws.py`) fans out incremental graph diffs
+  `{ addedNodes, removedNodes, updatedEdges }` published over Redis pub/sub by
+  the ingestion task. Each client subscribes with its current filters and the
+  gateway forwards ONLY diffs intersecting that client's view (server-side
+  predicate reusing the REST filter rules). The frontend client
+  (`lib/realtime/graphSocket.ts`) does one initial `/api/graph` load, then
+  streams diffs into the store via `applyDiff`, reconnects with capped
+  exponential backoff, re-syncs on reconnect, and sends `filter-update` messages
+  when the HUD filters change.
+- **Graceful fallback** — realtime is gated entirely on `NEXT_PUBLIC_WS_URL`
+  (frontend) and `REALTIME_ENABLED` (backend), both **unset/off by default**.
+  With them unset, no WebSocket is ever constructed and the `/network` page
+  renders from `/api/graph` exactly as before — real-time is purely additive.
+
+**What can be validated in this environment**: the store/diff logic, the WS
+gateway predicate, the client's diff-apply + backoff + filter contract, and a
+headless canvas-mount smoke are all covered by `bun test` and
+`cd backend && uv run pytest`. **What needs your real browser + GPU**: 60 FPS
+rendering and visual correctness of the instanced scene (cannot be measured
+headless). **What needs managed Redis + a deployed backend**: the live
+end-to-end WS loop (ingestion → Redis pub/sub → gateway → browser). Set
+`NEXT_PUBLIC_WS_URL` to your gateway URL and `REALTIME_ENABLED=true` +
+`REDIS_URL` on the backend to exercise it live.
+
 ## Getting Started
 
 ### Prerequisites

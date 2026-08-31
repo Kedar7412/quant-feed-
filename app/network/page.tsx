@@ -10,6 +10,8 @@ import { useGraphData } from "@/lib/hooks/useApiData";
 import { graph3DStore } from "@/lib/graph3d/store";
 import { setNodeRegistry } from "@/lib/graph3d/nodeRegistry";
 import { ForceSimClient } from "@/lib/graph3d/forceSimClient";
+import { GraphSocket } from "@/lib/realtime/graphSocket";
+import { isRealtimeEnabled } from "@/lib/realtime/ws-config";
 import { Network } from "lucide-react";
 import { motion } from "framer-motion";
 import type { GraphData } from "@/lib/types";
@@ -27,6 +29,10 @@ export default function NetworkPage() {
 
   // A single force-sim client for the page lifetime. No-ops safely under SSR.
   const simClientRef = useRef<ForceSimClient | null>(null);
+  // Optional real-time WS client (only constructed when NEXT_PUBLIC_WS_URL set).
+  const graphSocketRef = useRef<GraphSocket | null>(null);
+  // Latest REST-loaded graph, used to re-seed the store on WS (re)connect.
+  const latestGraphRef = useRef<GraphData | null>(null);
   // Version counter bumped on every graph (re)load so aggregate HUD panels
   // recompute their memoized values.
   const [graphVersion, setGraphVersion] = useState(0);
@@ -41,11 +47,34 @@ export default function NetworkPage() {
   useEffect(() => {
     if (!graphData) return;
     const graph: GraphData = { nodes: graphData.nodes, links: graphData.links };
+    latestGraphRef.current = graph;
     graph3DStore.getState().initFromGraph(graph);
     setNodeRegistry(graph);
     simClient.start(graph);
     setGraphVersion((v) => v + 1);
   }, [graphData, simClient]);
+
+  // Optional real-time WebSocket diffs, layered ADDITIVELY on top of the REST
+  // load. Gated entirely on NEXT_PUBLIC_WS_URL: when unset, isRealtimeEnabled()
+  // is false and NO WebSocket is ever constructed - the page renders from
+  // /api/graph exactly as it does without realtime. On (re)connect we re-seed
+  // the store from the last REST-loaded graph so the client re-syncs.
+  useEffect(() => {
+    if (!isRealtimeEnabled()) return;
+    const socket = new GraphSocket({
+      store: graph3DStore,
+      onResync: () => {
+        const graph = latestGraphRef.current;
+        if (graph) graph3DStore.getState().initFromGraph(graph);
+      },
+    });
+    graphSocketRef.current = socket;
+    socket.start();
+    return () => {
+      socket.stop();
+      graphSocketRef.current = null;
+    };
+  }, []);
 
   // Stop the worker on unmount.
   useEffect(() => {

@@ -8,17 +8,63 @@ actually runs.
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Any
 
-from app.config import get_settings
+from app.config import Settings, get_settings
+from app.pipeline import schema_map
 from app.pipeline.embeddings import select_embedder
 from app.pipeline.fetch import fetch_live_news
+from app.pipeline.models import ArticleIn
 from app.pipeline.orchestrator import RunResult, run
 from app.pipeline.scoring import select_causal_classifier
+from app.realtime.diff_publisher import GraphDiff, build_publisher
+from app.schemas import EconomicEdge, EconomicNode
 from app.stores.neo4j_store import Neo4jStore
 from app.stores.postgres import PostgresRelationalStore, _get_sessionmaker
 from app.stores.qdrant_store import QdrantStore
 from app.tasks.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
+
+
+def build_ingestion_diff(articles: list[ArticleIn], result: RunResult) -> GraphDiff:
+    """Assemble a ``GraphDiff`` for what this ingestion run added/changed.
+
+    Added nodes are every article touched this run; updated edges are the scored
+    edges produced this run (edge topology is applied as a full rewrite on the
+    client). Removals are empty — ingestion only adds/updates. Reuses
+    ``schema_map`` so the node/edge shapes match ``GET /graph/query`` exactly.
+    """
+    added_nodes = [
+        EconomicNode.model_validate(schema_map.graph_node(a)) for a in articles
+    ]
+    updated_edges = [
+        EconomicEdge.model_validate(schema_map.graph_link(e)) for e in result.scored_edges
+    ]
+    return GraphDiff(added_nodes=added_nodes, updated_edges=updated_edges)
+
+
+def publish_ingestion_diff(
+    settings: Settings, articles: list[ArticleIn], result: RunResult
+) -> None:
+    """Best-effort publish of the ingestion diff, guarded by ``realtime_enabled``.
+
+    A disabled flag makes this a no-op; a misconfigured/unreachable Redis is
+    swallowed and logged so it can NEVER fail ingestion. The publisher is
+    constructed lazily here so the module imports without a live broker.
+    """
+    if not settings.realtime_enabled:
+        return
+    diff = build_ingestion_diff(articles, result)
+    if diff.is_empty():
+        return
+    try:
+        publisher = build_publisher(settings)
+        asyncio.run(publisher.publish(diff))
+    except Exception as exc:  # noqa: BLE001 - best-effort, never fail ingestion
+        logger.warning("Realtime diff publish failed (ignored): %s", exc)
 
 
 def run_ingestion() -> RunResult:
@@ -37,7 +83,7 @@ def run_ingestion() -> RunResult:
     relational_store = PostgresRelationalStore(session)
 
     try:
-        return run(
+        result = run(
             articles,
             settings=settings,
             embedder=select_embedder(settings),
@@ -46,6 +92,10 @@ def run_ingestion() -> RunResult:
             vector_store=vector_store,
             relational_store=relational_store,
         )
+        # Best-effort real-time diff publish AFTER persistence. Guarded by the
+        # realtime flag; never fails ingestion.
+        publish_ingestion_diff(settings, articles, result)
+        return result
     finally:
         session.close()
         graph_store.close()

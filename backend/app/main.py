@@ -78,9 +78,11 @@ def create_app() -> FastAPI:
 
     from app.routers import articles as articles_router
     from app.routers import graph as graph_router
+    from app.routers import ws as ws_router
 
     app.include_router(graph_router.router)
     app.include_router(articles_router.router)
+    app.include_router(ws_router.router)
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
