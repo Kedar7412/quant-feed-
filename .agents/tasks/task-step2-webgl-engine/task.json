@@ -1,0 +1,7 @@
+{
+  "task_id": "task-step2-webgl-engine",
+  "task_description": "Step 2 of the Quant Feed roadmap: replace the prototype's react-force-graph-3d with a custom high-performance React Three Fiber / Three.js WebGL engine (single InstancedMesh nodes, custom shaders, fat-line edges with flow shader, SDF labels with LOD, eased camera, time-axis Z projection, semantic LOD), move the force-directed layout to a Web Worker (d3-force-3d), and keep all scene data in plain typed arrays owned by a vanilla Zustand store OUTSIDE React with dirty-range GPU updates and free-list slot recycling. Add a dark HUD overlay (inspector drawer, entity filters, sentiment heatmap, event-sequence timeline). Add real-time WebSocket graph diffs: a FastAPI WS gateway with a server-side per-client filter predicate fanning out Redis-published diffs, and a client that streams diffs into the store - all feature-flagged and gracefully falling back to the existing /api/graph REST path when unset/unreachable. Scoped to Step 2 only; NO Graph-RAG/auth/billing (Step 3). Do NOT push or open PRs; work stays on branch feat/step2-webgl-engine.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}
