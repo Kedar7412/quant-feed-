@@ -39,7 +39,6 @@
     "openai": "^7.8.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-force-graph-3d": "^1.29.1",
     "rss-parser": "^3.13.0",
     "three": "^0.185.1",
     "three-stdlib": "^2.36.1",
@@ -49,8 +48,8 @@
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/node": "^26.4.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@types/three": "^0.185.4",
     "autoprefixer": "^10.5.4",
     "eslint": "^8.57.1",

@@ -1,16 +1,58 @@
 "use client";
 
-import { NetworkGraph } from "@/components/NetworkGraph";
+import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { TopicCorrelationsPanel } from "@/components/TopicCorrelationsPanel";
 import { GraphSkeleton } from "@/components/LoadingSkeleton";
+import { GraphHUD } from "@/components/graph3d/GraphHUD";
 import { useGraphData } from "@/lib/hooks/useApiData";
+import { graph3DStore } from "@/lib/graph3d/store";
+import { setNodeRegistry } from "@/lib/graph3d/nodeRegistry";
+import { ForceSimClient } from "@/lib/graph3d/forceSimClient";
 import { Network } from "lucide-react";
 import { motion } from "framer-motion";
+import type { GraphData } from "@/lib/types";
+
+// The <Canvas> subtree is client-only WebGL; never server-render it (mirrors the
+// old NetworkGraph dynamic-import pattern).
+const GraphScene = dynamic(() => import("@/components/graph3d/GraphScene"), {
+  ssr: false,
+  loading: () => <GraphSkeleton />,
+});
 
 export default function NetworkPage() {
   const { data: graphData, loading, dataSource } = useGraphData();
   const correlations = graphData?.correlations || [];
+
+  // A single force-sim client for the page lifetime. No-ops safely under SSR.
+  const simClientRef = useRef<ForceSimClient | null>(null);
+  // Version counter bumped on every graph (re)load so aggregate HUD panels
+  // recompute their memoized values.
+  const [graphVersion, setGraphVersion] = useState(0);
+
+  const simClient = useMemo(() => {
+    const client = new ForceSimClient(graph3DStore);
+    simClientRef.current = client;
+    return client;
+  }, []);
+
+  // Load graph data into the store + registry and (re)start the sim worker.
+  useEffect(() => {
+    if (!graphData) return;
+    const graph: GraphData = { nodes: graphData.nodes, links: graphData.links };
+    graph3DStore.getState().initFromGraph(graph);
+    setNodeRegistry(graph);
+    simClient.start(graph);
+    setGraphVersion((v) => v + 1);
+  }, [graphData, simClient]);
+
+  // Stop the worker on unmount.
+  useEffect(() => {
+    return () => {
+      simClientRef.current?.stop();
+    };
+  }, []);
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col py-2">
@@ -93,7 +135,10 @@ export default function NetworkPage() {
                 />
               ))}
             </div>
-            <NetworkGraph graphData={graphData} />
+
+            {/* Custom WebGL engine + DOM HUD overlay */}
+            <GraphScene />
+            <GraphHUD simClient={simClientRef.current} version={graphVersion} />
           </motion.div>
 
           {/* Trending threads / topic correlations side panel */}
