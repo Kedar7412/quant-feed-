@@ -9,10 +9,22 @@ the graph identically to ``GET /graph/query``.
 The node-level rules here reuse the EXACT derivations in
 ``app.services.graph_service`` (category match; sentiment derived from
 ``economicImpactScore`` with >=7 positive / <=3 negative / else neutral) so the
-WS and REST paths agree. Date and entity filters operate on fields the diff node
-does not always carry; the predicate keeps a node when it lacks the data needed
-to exclude it (diffs are additive and best-effort), matching the REST behavior
-of only excluding articles it can positively place outside the window.
+WS and REST paths agree.
+
+Best-effort DATE/ENTITY handling (INTENTIONAL, needs product sign-off):
+diff nodes do not carry the fields these two filters really need, so the
+predicate cannot enforce them the way ``GET /graph/query`` does over persisted
+articles:
+
+- Date window: a diff node has NO ``publishedAt``, so the window CANNOT be
+  applied and the add is KEPT. An entity-/date-scoped client may therefore
+  receive adds it cannot positively exclude until the next REST window
+  re-authoritatively narrows the graph. This is deliberate (diffs are additive
+  and best-effort) and flagged for product sign-off.
+- Entity: the diff node carries only tags + label/title/summary (not linked
+  entities), so entity match is a best-effort substring test over those fields;
+  a node with no textual mention is dropped to avoid spamming an entity-focused
+  client with unrelated adds.
 """
 
 from __future__ import annotations

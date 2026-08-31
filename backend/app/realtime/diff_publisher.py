@@ -34,6 +34,14 @@ class GraphDiff:
 
     Field names on the wire are camelCase to match the frontend contract:
     ``{addedNodes, removedNodes, updatedEdges}``.
+
+    CONTRACT: ``addedNodes`` and ``removedNodes`` are incremental patches, but
+    ``updatedEdges`` is a FULL REWRITE of the edge topology — the client replaces
+    its entire edge buffer with exactly these edges (see ``lib/graph3d/types.ts``
+    ``GraphDiff`` and ``store.rewriteEdges``). Producers must therefore always
+    populate ``updatedEdges`` with the CUMULATIVE current edge set, not just the
+    edges touched by the latest change, or a streamed diff will drop every
+    previously loaded edge.
     """
 
     __slots__ = ("added_nodes", "removed_nodes", "updated_edges")

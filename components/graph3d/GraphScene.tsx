@@ -30,14 +30,9 @@ import { GraphLabels } from "./GraphLabels";
 import { CameraRig } from "./CameraRig";
 import { ClusterImpostors } from "./ClusterImpostors";
 
-/** Reverse slot -> id used to translate a raycast hit into a selection. */
+/** Reverse slot -> id used to translate a raycast hit into a selection (O(1)). */
 function idForSlot(slot: number): string | null {
-  const state = graph3DStore.getState();
-  let found: string | null = null;
-  state.nodeSlots.forEach((s, id) => {
-    if (s === slot) found = id;
-  });
-  return found;
+  return graph3DStore.getState().getIdForSlot(slot) ?? null;
 }
 
 function SceneContents() {

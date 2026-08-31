@@ -56,8 +56,18 @@ export const LAYOUT = {
 
 /**
  * A graph diff describing an incremental change to the scene. Field names align
- * with `lib/types.ts` (EconomicNode / EconomicEdge). `updatedEdges` is applied
- * as a full rewrite of the edge topology, not a partial patch.
+ * with `lib/types.ts` (EconomicNode / EconomicEdge).
+ *
+ * CONTRACT: `updatedEdges` is applied as a FULL REWRITE of the edge topology,
+ * not a partial patch. `store.applyDiff` -> `rewriteEdges` replaces the entire
+ * edge buffer with exactly the edges in `updatedEdges` (skipping any whose
+ * endpoints are not both live). Consequently the PRODUCER must always send the
+ * complete current edge set, never just the edges touched by the latest change.
+ * The backend ingestion hook (`backend/app/tasks/ingest.py`
+ * `build_ingestion_diff`) upholds this by publishing the cumulative persisted
+ * edge set after each run, so a streamed diff never drops previously loaded
+ * edges. (`addedNodes`/`removedNodes` ARE incremental patches, only edges are a
+ * full replace.)
  */
 export interface GraphDiff {
   addedNodes: EconomicNode[];

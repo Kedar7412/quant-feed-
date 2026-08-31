@@ -97,6 +97,85 @@ describe("graph3d store - free-list recycling (leak fix)", () => {
   });
 });
 
+describe("graph3d store - draw count after a REMOVE-ONLY diff (regression)", () => {
+  // Regression for the review's blocking issue #1: the instanced node mesh draws
+  // instances [0, count). If `count` were driven by `liveCount`, a remove-only
+  // diff would leave a live node at a slot index >= liveCount undrawn while an
+  // empty low-index slot occupied a draw slot. The draw count MUST be the
+  // high-water mark so every live slot is inside the draw range.
+  it("keeps every live slot inside the draw range (count=highWater, not liveCount)", () => {
+    const store = createGraph3DStore();
+    const s = store.getState();
+    s.applyDiff(emptyDiff({ addedNodes: [node("a"), node("b"), node("c")] }));
+    expect(s.getSlot("a")).toBe(0);
+    expect(s.getSlot("b")).toBe(1);
+    expect(s.getSlot("c")).toBe(2);
+
+    // REMOVE ONLY (no add to refill the hole) — this is the case the existing
+    // remove-and-add tests never produce, which masked the bug.
+    s.applyDiff(emptyDiff({ removedNodes: ["a"] }));
+
+    // liveCount dropped to 2, but `c` still lives at slot 2.
+    expect(s.getLiveCount()).toBe(2);
+    expect(s.getSlot("c")).toBe(2);
+
+    // The draw count MUST cover slot 2, so it must be > liveCount here.
+    const drawCount = s.getDrawCount();
+    expect(drawCount).toBe(3); // high-water mark, not liveCount (2)
+    expect(drawCount).toBeGreaterThan(s.getLiveCount());
+
+    // Every live slot is strictly inside [0, drawCount).
+    for (const id of ["b", "c"]) {
+      const slot = s.getSlot(id)!;
+      expect(slot).toBeLessThan(drawCount);
+    }
+    // The freed low slot 0 is inside the draw range but scale-0 (safe to draw).
+    expect(s.getSlot("a")).toBeUndefined();
+    expect(s.scales[0]).toBe(0);
+  });
+
+  it("draws an added node landing at a slot >= liveCount", () => {
+    const store = createGraph3DStore();
+    const s = store.getState();
+    s.applyDiff(emptyDiff({ addedNodes: [node("a"), node("b"), node("c")] }));
+    // Remove two low nodes only -> liveCount=1 but `c` sits at slot 2.
+    s.applyDiff(emptyDiff({ removedNodes: ["a", "b"] }));
+    expect(s.getLiveCount()).toBe(1);
+    expect(s.getSlot("c")).toBe(2);
+    // Draw count still spans slot 2.
+    expect(s.getDrawCount()).toBe(3);
+    expect(s.getSlot("c")!).toBeLessThan(s.getDrawCount());
+  });
+});
+
+describe("graph3d store - slot->id reverse map (O(1) lookup)", () => {
+  it("resolves ids by slot and stays in sync across add/remove/reuse", () => {
+    const store = createGraph3DStore();
+    const s = store.getState();
+    s.applyDiff(emptyDiff({ addedNodes: [node("a"), node("b"), node("c")] }));
+    expect(s.getIdForSlot(0)).toBe("a");
+    expect(s.getIdForSlot(1)).toBe("b");
+    expect(s.getIdForSlot(2)).toBe("c");
+
+    // Remove b: slot 1 no longer maps to any id.
+    s.applyDiff(emptyDiff({ removedNodes: ["b"] }));
+    expect(s.getIdForSlot(1)).toBeUndefined();
+
+    // Reuse slot 1 for d.
+    s.applyDiff(emptyDiff({ addedNodes: [node("d")] }));
+    expect(s.getSlot("d")).toBe(1);
+    expect(s.getIdForSlot(1)).toBe("d");
+  });
+
+  it("initFromGraph rebuilds the reverse map", () => {
+    const store = createGraph3DStore();
+    store.getState().initFromGraph({ nodes: [node("x"), node("y")], links: [] });
+    const s = store.getState();
+    expect(s.getIdForSlot(0)).toBe("x");
+    expect(s.getIdForSlot(1)).toBe("y");
+  });
+});
+
 describe("graph3d store - capacity ceiling", () => {
   it("drops-with-warning beyond CAPACITY without throwing or corrupting slots", () => {
     const store = createGraph3DStore();

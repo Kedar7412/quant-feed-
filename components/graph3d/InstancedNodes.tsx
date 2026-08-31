@@ -42,9 +42,17 @@ export function InstancedNodes({ onSelectSlot, material }: InstancedNodesProps) 
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const invalidate = useThree((s) => s.invalidate);
 
-  // Subscribe to liveCount so the mesh's draw count follows the store, but the
-  // node geometry itself is never re-created by React.
-  const liveCount = useStore(graph3DStore, (s) => s.liveCount);
+  // Subscribe to the high-water mark so the mesh's draw count follows the store,
+  // but the node geometry itself is never re-created by React.
+  //
+  // IMPORTANT: the draw count is the high-water mark, NOT `liveCount`. Slots are
+  // stable and recycled via a free-list, so after a remove-only diff a live node
+  // can occupy an index >= liveCount while a lower index sits empty. Drawing
+  // instances [0, highWater) covers every live node; freed/empty slots below the
+  // high-water mark are scale-0 and render as nothing, so they are safe to draw.
+  // Using `liveCount` here would truncate the highest live slots (they vanish)
+  // and instead draw empty low-index slots.
+  const drawCount = useStore(graph3DStore, (s) => s.highWater);
 
   // One geometry sized to CAPACITY. Memoized so React never rebuilds it;
   // explicitly disposed on unmount. The material is owned by GraphScene.
@@ -147,8 +155,10 @@ export function InstancedNodes({ onSelectSlot, material }: InstancedNodesProps) 
     <instancedMesh
       ref={meshRef}
       args={[geometry, material, CAPACITY]}
-      // Only draw the live nodes; instances beyond count render at scale 0.
-      count={Math.max(liveCount, 0)}
+      // Draw every slot up to the high-water mark. Slots are sparse after
+      // removals, so this is driven by highWater (not liveCount) to avoid
+      // truncating high-index live nodes; empty slots below it are scale-0.
+      count={Math.max(drawCount, 0)}
       frustumCulled={false}
       onClick={handleClick}
     />

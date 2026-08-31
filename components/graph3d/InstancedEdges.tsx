@@ -141,7 +141,12 @@ export function InstancedEdges() {
     if (!line) return;
     const state = graph3DStore.getState();
     const count = state.edgeCount;
-    if (count === 0) return;
+    if (count === 0) {
+      // No live edges: make sure nothing stale is drawn (a diff may have just
+      // emptied the topology before the classification effect ran).
+      geometry.setDrawRange(0, 0);
+      return;
+    }
     const positions = geometry.getAttribute("position").array as Float32Array;
     const storePos = state.positions;
     const storeEdges = state.edges;
@@ -160,6 +165,15 @@ export function InstancedEdges() {
       positions[v0 + 5] = storePos[tp + 2];
     }
     geometry.getAttribute("position").needsUpdate = true;
+    // Keep the draw range clamped to the CURRENT live edge count every frame.
+    // `rebuildClassification` (which also sets the draw range) runs in a
+    // useEffect that fires AFTER the diff mutates the store, so for one frame the
+    // draw range could otherwise still reflect the pre-diff (larger) edge count
+    // and draw stale segments against slots a remove-only diff just freed/zeroed.
+    // Clamping here in the same useFrame that reads the freshly-rewritten
+    // `state.edges`/`state.edgeCount` guarantees no edge is ever drawn against a
+    // recycled slot, even before the classification effect catches up.
+    geometry.setDrawRange(0, count * 2);
     // Advance the flow animation clock (only matters while causal edges exist).
     (material.uniforms.uTime.value as number) += delta;
     invalidate();

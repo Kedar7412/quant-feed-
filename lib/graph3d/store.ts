@@ -61,6 +61,12 @@ export interface Graph3DState {
   // ---- Bookkeeping ----
   /** id -> slot index for every live node. */
   readonly nodeSlots: Map<string, number>;
+  /**
+   * slot -> id reverse map, maintained in lock-step with `nodeSlots`. Lets the
+   * render loop (labels) and click handler resolve an id from a slot in O(1)
+   * instead of scanning the whole `nodeSlots` map every frame / click.
+   */
+  readonly slotIds: Map<number, string>;
   /** Stack of recycled slot indices available for reuse (LIFO). */
   readonly freeList: number[];
   /** Number of live nodes. */
@@ -85,6 +91,15 @@ export interface Graph3DState {
   setFilters(filters: Partial<ActiveFilters>): void;
   consumeDirtyRange(): DirtyRange | null;
   getSlot(id: string): number | undefined;
+  getIdForSlot(slot: number): string | undefined;
+  /**
+   * Number of instances the renderer must draw: the high-water mark, NOT
+   * `liveCount`. Slots are stable and sparse after removals, so a live node can
+   * occupy an index >= liveCount; every slot below the high-water mark is either
+   * live or a scale-0 empty (both safe to draw), so drawing `[0, highWater)`
+   * covers all live nodes without truncating high-index ones.
+   */
+  getDrawCount(): number;
 
   // ---- Selector-friendly slices for the HUD ----
   getLiveCount(): number;
@@ -214,6 +229,7 @@ export function createGraph3DStore(): StoreApi<Graph3DState> {
         return;
       }
       state.nodeSlots.set(node.id, slot);
+      state.slotIds.set(slot, node.id);
       state.liveCount++;
       writeNodeAttributes(state, slot, node);
       markDirty(state, slot);
@@ -224,6 +240,7 @@ export function createGraph3DStore(): StoreApi<Graph3DState> {
       if (slot === undefined) return;
       clearSlot(state, slot);
       state.nodeSlots.delete(id);
+      state.slotIds.delete(slot);
       state.freeList.push(slot);
       state.liveCount--;
       markDirty(state, slot);
@@ -232,6 +249,7 @@ export function createGraph3DStore(): StoreApi<Graph3DState> {
     return {
       ...arrays,
       nodeSlots: new Map<string, number>(),
+      slotIds: new Map<number, string>(),
       freeList: [],
       liveCount: 0,
       highWater: 0,
@@ -245,6 +263,7 @@ export function createGraph3DStore(): StoreApi<Graph3DState> {
         const state = get();
         // Reset bookkeeping (buffers are reused, not reallocated).
         state.nodeSlots.clear();
+        state.slotIds.clear();
         state.freeList.length = 0;
         state.liveCount = 0;
         state.highWater = 0;
@@ -310,6 +329,14 @@ export function createGraph3DStore(): StoreApi<Graph3DState> {
 
       getSlot(id: string): number | undefined {
         return get().nodeSlots.get(id);
+      },
+
+      getIdForSlot(slot: number): string | undefined {
+        return get().slotIds.get(slot);
+      },
+
+      getDrawCount(): number {
+        return get().highWater;
       },
 
       getLiveCount(): number {

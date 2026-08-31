@@ -142,7 +142,7 @@ export function GraphLabels() {
       const t = pool[i];
       if (i < visible) {
         const c = candidates[i];
-        const meta = getNodeMeta(idForSlot(state, c.slot));
+        const meta = getNodeMeta(state.slotIds.get(c.slot) ?? "");
         const raw = meta?.title || meta?.label || "";
         const label = raw.length > 40 ? raw.slice(0, 38) + "..." : raw;
         if (t.text !== label) {
@@ -159,16 +159,4 @@ export function GraphLabels() {
   });
 
   return <group ref={groupRef} />;
-}
-
-/** Reverse lookup slot -> id (small, only for the <=50 visible labels). */
-function idForSlot(
-  state: ReturnType<typeof graph3DStore.getState>,
-  slot: number
-): string {
-  let found = "";
-  state.nodeSlots.forEach((s, id) => {
-    if (s === slot) found = id;
-  });
-  return found;
 }

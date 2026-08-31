@@ -71,6 +71,49 @@ def test_build_ingestion_diff_shape() -> None:
     }
 
 
+def test_diff_uses_cumulative_edges_not_just_this_run() -> None:
+    """Regression: the diff must carry the FULL edge set, not just this run's.
+
+    The client applies ``updatedEdges`` as a full rewrite of its edge buffer, so
+    a diff carrying only the latest run's scored edges would drop every
+    previously loaded/streamed edge. ``build_ingestion_diff`` must emit the
+    cumulative edge set when one is supplied.
+    """
+    # This run scored a single a1->a2 edge...
+    result = _result()
+    # ...but the persisted graph already contains an earlier a2->a3 edge too.
+    cumulative = [
+        result.scored_edges[0],
+        ScoredEdge(
+            source_article_id="a2",
+            target_article_id="a3",
+            semantic=0.5,
+            entity_overlap=0.3,
+            causal=0.2,
+            direction="source->target",
+            weight=0.4,
+            relationship="related",
+        ),
+    ]
+
+    diff = build_ingestion_diff(_articles(), result, cumulative_edges=cumulative)
+    body = diff.to_dict()
+
+    pairs = {(e["source"], e["target"]) for e in body["updatedEdges"]}
+    # Both the new edge AND the pre-existing edge must be present, so a full
+    # rewrite on the client does not wipe prior topology.
+    assert pairs == {("a1", "a2"), ("a2", "a3")}
+    assert len(body["updatedEdges"]) == 2
+
+
+def test_diff_falls_back_to_run_edges_without_cumulative() -> None:
+    """Without a cumulative set the builder falls back to this run's edges."""
+    diff = build_ingestion_diff(_articles(), _result())
+    body = diff.to_dict()
+    pairs = {(e["source"], e["target"]) for e in body["updatedEdges"]}
+    assert pairs == {("a1", "a2")}
+
+
 def test_publish_noop_when_realtime_disabled() -> None:
     """With realtime OFF (the default) publishing does nothing and never raises."""
     settings = Settings(realtime_enabled=False)
