@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     # --- Redis (Celery broker/backend) ---
     redis_url: str = "redis://localhost:6379/0"
 
+    # --- Real-time WebSocket graph diffs (FEAT-004, optional) ---
+    # OFF by default so nothing changes unless explicitly enabled. When True,
+    # ``run_ingestion`` best-effort publishes a graph diff to the pub/sub channel
+    # below and the ``/ws/graph`` gateway fans it out to connected clients. A
+    # disabled/unreachable Redis stays a no-op and never fails ingestion.
+    realtime_enabled: bool = False
+    # Redis pub/sub channel carrying serialized graph diffs.
+    diff_channel: str = "quantfeed:graph-diffs"
+
     # --- OpenAI (embeddings + causal classifier, used in FEAT-002) ---
     openai_api_key: str | None = None
 

@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "bun test"
   },
   "repository": {
     "type": "git",
@@ -25,8 +26,12 @@
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-tabs": "^1.1.21",
     "@radix-ui/react-tooltip": "^1.2.16",
+    "@react-three/drei": "^9",
+    "@react-three/fiber": "^8",
+    "camera-controls": "^3.1.2",
     "cheerio": "^1.2.0",
     "d3": "^7.9.0",
+    "d3-force-3d": "^3.0.6",
     "date-fns": "^4.4.0",
     "framer-motion": "^13.1.1",
     "lucide-react": "^1.34.0",
@@ -34,15 +39,17 @@
     "openai": "^7.8.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-force-graph-3d": "^1.29.1",
     "rss-parser": "^3.13.0",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "three-stdlib": "^2.36.1",
+    "troika-three-text": "^0.52.5",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/node": "^26.4.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
     "@types/three": "^0.185.4",
     "autoprefixer": "^10.5.4",
     "eslint": "^8.57.1",
